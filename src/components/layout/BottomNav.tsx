@@ -1,8 +1,7 @@
-import { Dumbbell, Home, Sparkles, TrendingUp, User } from 'lucide-react'
-import type { ComponentType } from 'react'
+import { Dumbbell, Home, Sparkles, TrendingUp, User, type LucideIcon } from 'lucide-react'
 import type { TabId } from '../../types'
 
-export const TABS: { id: TabId; label: string; Icon: ComponentType<{ size?: number; strokeWidth?: number }> }[] = [
+export const TABS: { id: TabId; label: string; Icon: LucideIcon }[] = [
   { id: 'today', label: 'Today', Icon: Home },
   { id: 'fitness', label: 'Fitness', Icon: Dumbbell },
   { id: 'coach', label: 'AI Coach', Icon: Sparkles },
