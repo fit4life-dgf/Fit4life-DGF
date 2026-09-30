@@ -70,7 +70,7 @@ export async function fetchPhotos(userId: string): Promise<ProgressPhoto[]> {
   if (!rows.length) return rows
   const signed = await supabase.storage.from('fit-photos').createSignedUrls(rows.map((r) => r.storage_path), 3600)
   const urls = new Map((signed.data ?? []).map((s) => [s.path ?? '', s.signedUrl]))
-  return rows.map((r) => ({ ...r, url: urls.get(r.storage_path) }))
+  return rows.map((r): ProgressPhoto => ({ ...r, url: urls.get(r.storage_path) ?? undefined }))
 }
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024
