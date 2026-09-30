@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -47,4 +50,21 @@ jobs:
           code=$?
           tail -n 25 "$RUNNER_TEMP/build.log"
           if [ $code -ne 0 ]; then echo "::error title=build::$(tail -n 40 "$RUNNER_TEMP/build.log" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"; fi
+          exit $code
+
+      - name: End-to-end smoke test
+        if: always() && steps.install.outcome == 'success'
+        run: |
+          set +e
+          npm i --no-save playwright@1.49.1 > "$RUNNER_TEMP/pw.log" 2>&1
+          npx playwright install --with-deps chromium >> "$RUNNER_TEMP/pw.log" 2>&1
+          (npx vite preview --port 4173 > "$RUNNER_TEMP/preview.log" 2>&1 &)
+          sleep 4
+          node e2e/smoke.mjs > "$RUNNER_TEMP/e2e.log" 2>&1
+          code=$?
+          echo "::notice title=e2e-summary::$(grep -E 'PASS|FAIL|checks passed' "$RUNNER_TEMP/e2e.log" | cut -c1-260 | head -n 40 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+          if [ $code -ne 0 ]; then echo "::error title=e2e::$(grep -vE '^PASS' "$RUNNER_TEMP/e2e.log" | tail -n 40 | cut -c1-300 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"; fi
+          if [ -d e2e-out ]; then
+            cd e2e-out && git init -q && git config user.email ci@example.com && git config user.name ci && git add -A && git commit -q -m "e2e screenshots" && git push -f -q "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" HEAD:refs/heads/e2e-shots
+          fi
           exit $code
