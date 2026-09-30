@@ -40,6 +40,13 @@ function android() {
   x = x.replace(/<\/application>/, `${alias}    </application>`)
   writeFileSync(file, x)
 
+  // The Health Connect plugin needs Android 8 (API 26) or newer; Capacitor's default is lower.
+  const vars = join(root, 'android/variables.gradle')
+  if (existsSync(vars)) {
+    const v = readFileSync(vars, 'utf8')
+    writeFileSync(vars, v.replace(/minSdkVersion\s*=\s*(\d+)/, (m, n) => (Number(n) < 26 ? 'minSdkVersion = 26' : m)))
+  }
+
   // Privacy policy page shown from Health Connect (also served from the bundled web assets).
   const src = join(root, '../public/privacypolicy.html')
   const dir = join(root, 'android/app/src/main/assets/public')

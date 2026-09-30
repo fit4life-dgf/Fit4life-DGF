@@ -21,10 +21,20 @@ jobs:
         run: npm install && npm run build
       - name: Create Android project
         working-directory: mobile
-        run: npm install && npm run add:android
+        run: |
+          set -o pipefail
+          (npm install && npm run add:android) 2>&1 | tee "$RUNNER_TEMP/create.log" || {
+            echo "::error title=create-android::$(tail -n 30 "$RUNNER_TEMP/create.log" | sed 's/%/%25/g' | tr '\r\n' '  ')"
+            exit 1
+          }
       - name: Build APK
         working-directory: mobile/android
-        run: ./gradlew assembleDebug
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee "$RUNNER_TEMP/build.log" || {
+            echo "::error title=gradle::$(grep -E 'What went wrong|Execution failed|error:|Could not|minSdk|Manifest merger|FAILURE|Caused by' -A2 "$RUNNER_TEMP/build.log" | head -n 40 | sed 's/%/%25/g' | tr '\r\n' '  ')"
+            exit 1
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: fit4life-debug-apk
