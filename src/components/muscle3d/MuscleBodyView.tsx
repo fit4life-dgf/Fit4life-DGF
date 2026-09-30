@@ -105,7 +105,7 @@ export function MuscleBodyView({ gender = 'male', selected = [], secondary = [],
   if (!ok) return fallback
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <div
         role="group" aria-label={`${label}. Drag to rotate, tap a muscle to select it.`} tabIndex={0}
         className={`relative w-full overflow-hidden rounded-card bg-card2 ${height} cursor-grab touch-pan-y select-none outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing`}
@@ -127,10 +127,10 @@ export function MuscleBodyView({ gender = 'male', selected = [], secondary = [],
       </div>
       {controls && (
         <>
-          <div className="mt-3 flex items-center justify-between gap-2">
-            <div role="group" aria-label="Camera view" className="flex gap-1 rounded-full bg-card2 p-1">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <div role="group" aria-label="Camera view" className="flex gap-0.5 rounded-full bg-card2 p-1">
               {(['front', 'back', 'left', 'right'] as ViewName[]).map((v) => (
-                <button key={v} type="button" onClick={() => goView(v)} className="min-h-[36px] rounded-full px-3 text-xs font-semibold capitalize text-ink2 hover:bg-card">{v === 'left' || v === 'right' ? `${v} side` : v}</button>
+                <button key={v} type="button" onClick={() => goView(v)} className="min-h-[36px] rounded-full px-2.5 text-xs font-semibold capitalize text-ink2 hover:bg-card" aria-label={v === 'left' || v === 'right' ? `${v} side view` : `${v} view`}>{v}</button>
               ))}
             </div>
             <div className="flex gap-1">

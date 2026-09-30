@@ -10,9 +10,12 @@ export interface BodyPart {
   muscle: MuscleId | null
   position: [number, number, number]
   scale: [number, number, number]
+  rotation: [number, number, number]
+  /** [radius, cylinder length] for limb segments drawn as capsules; null for ellipsoids. */
+  capsule: [number, number] | null
 }
 
-type Row = { name: string; muscle: MuscleId | null; pos: [number, number, number]; scale: [number, number, number]; mirror: boolean }
+type Row = { name: string; muscle: MuscleId | null; pos: [number, number, number]; scale: [number, number, number]; mirror: boolean; tilt?: number; cap?: [number, number] }
 
 const R: Row[] = [
   // non-selectable anatomy
@@ -20,10 +23,11 @@ const R: Row[] = [
   { name: 'neck', muscle: null, pos: [0, 0.635, 0], scale: [0.05, 0.06, 0.05], mirror: false },
   { name: 'torso', muscle: null, pos: [0, 0.32, 0], scale: [0.175, 0.335, 0.095], mirror: false },
   { name: 'pelvis', muscle: null, pos: [0, -0.02, 0], scale: [0.165, 0.12, 0.095], mirror: false },
-  { name: 'upper_arm', muscle: null, pos: [0.3, 0.39, 0], scale: [0.048, 0.16, 0.048], mirror: true },
-  { name: 'hand', muscle: null, pos: [0.36, -0.03, 0], scale: [0.036, 0.06, 0.024], mirror: true },
-  { name: 'thigh', muscle: null, pos: [0.09, -0.3, 0], scale: [0.078, 0.21, 0.072], mirror: true },
-  { name: 'shin', muscle: null, pos: [0.09, -0.66, 0], scale: [0.045, 0.17, 0.045], mirror: true },
+  { name: 'upper_arm', muscle: null, pos: [0.29, 0.4, 0], scale: [1, 1, 1], mirror: true, tilt: 0.19, cap: [0.046, 0.175] },
+  { name: 'lower_arm', muscle: null, pos: [0.336, 0.125, 0], scale: [1, 1, 1], mirror: true, tilt: 0.127, cap: [0.035, 0.22] },
+  { name: 'hand', muscle: null, pos: [0.362, -0.06, 0], scale: [0.036, 0.062, 0.026], mirror: true, tilt: 0.127 },
+  { name: 'thigh', muscle: null, pos: [0.0925, -0.28, 0], scale: [1, 1, 1], mirror: true, cap: [0.076, 0.29] },
+  { name: 'shin', muscle: null, pos: [0.0925, -0.67, 0], scale: [1, 1, 1], mirror: true, cap: [0.046, 0.245] },
   { name: 'foot', muscle: null, pos: [0.09, -0.875, 0.05], scale: [0.045, 0.022, 0.085], mirror: true },
   // shoulders
   { name: 'anterior_deltoid', muscle: 'front_delts', pos: [0.245, 0.55, 0.05], scale: [0.06, 0.065, 0.05], mirror: true },
@@ -37,9 +41,9 @@ const R: Row[] = [
   { name: 'rectus_abdominis_4', muscle: 'abs', pos: [0.033, 0.16, 0.09], scale: [0.032, 0.028, 0.02], mirror: true },
   { name: 'external_oblique', muscle: 'obliques', pos: [0.128, 0.26, 0.06], scale: [0.04, 0.14, 0.05], mirror: true },
   // arms
-  { name: 'biceps', muscle: 'biceps', pos: [0.3, 0.4, 0.034], scale: [0.045, 0.12, 0.036], mirror: true },
-  { name: 'triceps', muscle: 'triceps', pos: [0.3, 0.4, -0.034], scale: [0.045, 0.12, 0.036], mirror: true },
-  { name: 'forearm', muscle: 'forearms', pos: [0.335, 0.12, 0], scale: [0.042, 0.14, 0.042], mirror: true },
+  { name: 'biceps', muscle: 'biceps', pos: [0.292, 0.4, 0.034], scale: [0.045, 0.125, 0.036], mirror: true, tilt: 0.19 },
+  { name: 'triceps', muscle: 'triceps', pos: [0.292, 0.4, -0.034], scale: [0.045, 0.125, 0.036], mirror: true, tilt: 0.19 },
+  { name: 'forearm', muscle: 'forearms', pos: [0.336, 0.14, 0], scale: [0.04, 0.125, 0.04], mirror: true, tilt: 0.127 },
   // back
   { name: 'trapezius', muscle: 'traps', pos: [0.06, 0.58, -0.062], scale: [0.09, 0.065, 0.04], mirror: true },
   { name: 'latissimus', muscle: 'lats', pos: [0.125, 0.38, -0.082], scale: [0.09, 0.15, 0.04], mirror: true },
@@ -69,7 +73,9 @@ export function buildParts(gender: 'male' | 'female'): BodyPart[] {
         name,
         muscle: r.muscle,
         position: [r.mirror ? v.sign * r.pos[0] * f : r.pos[0], r.pos[1], r.pos[2]],
-        scale: [r.scale[0] * (r.mirror ? f : 1), r.scale[1], r.scale[2]],
+        scale: [r.scale[0] * (r.mirror && !r.cap ? f : 1), r.scale[1], r.scale[2]],
+        rotation: [0, 0, (r.tilt ?? 0) * (r.mirror ? v.sign : 1)],
+        capsule: r.cap ?? null,
       })
     }
   }

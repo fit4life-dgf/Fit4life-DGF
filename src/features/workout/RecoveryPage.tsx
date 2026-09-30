@@ -48,7 +48,7 @@ export function RecoveryPage() {
   const sorted = [...trained].sort((a, b) => rec[a].pct - rec[b].pct)
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 [&>*]:min-w-0">
       <PageHeader title={own ? 'Recovery' : `${person.data?.full_name ?? 'Client'} · Recovery`} onBack={() => nav.back()} />
       <Card className="flex items-center gap-4">
         <ProgressRing value={ready ?? 0} size={110} stroke={10} color="readiness" label={ready == null ? 'Readiness not available' : `Readiness ${ready} out of 100`}>

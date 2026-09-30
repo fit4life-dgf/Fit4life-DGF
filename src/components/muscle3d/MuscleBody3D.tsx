@@ -18,11 +18,11 @@ export interface SceneProps {
   onHover: (id: string | null) => void
 }
 
-const BASE_Z = 4.1
+const BASE_Z = 3.75
 
 interface PartProps {
   part: BodyPart
-  geo: THREE.SphereGeometry
+  geo: THREE.BufferGeometry
   color: string
   emissive: string
   glow: number
@@ -44,6 +44,7 @@ function Part({ part, geo, color, emissive, glow, pulse, interactive, onPick, on
       name={part.name}
       geometry={geo}
       position={part.position}
+      rotation={part.rotation}
       scale={part.scale}
       onPointerOver={(e) => { e.stopPropagation(); if (interactive && id) onHover(id) }}
       onPointerOut={() => { if (interactive && id) onHover(null) }}
@@ -60,8 +61,13 @@ function Part({ part, geo, color, emissive, glow, pulse, interactive, onPick, on
 
 function Body({ gender, selected, secondary, colors, pulse, interactive, ctl, onPick, onHover }: SceneProps) {
   const group = useRef<THREE.Group>(null)
-  const geo = useMemo(() => new THREE.SphereGeometry(1, 24, 16), [])
   const parts = useMemo(() => buildParts(gender), [gender])
+  const geos = useMemo(() => {
+    const sphere = new THREE.SphereGeometry(1, 28, 18)
+    const caps = new Map<string, THREE.BufferGeometry>()
+    for (const p of parts) if (p.capsule) { const k = p.capsule.join(':'); if (!caps.has(k)) caps.set(k, new THREE.CapsuleGeometry(p.capsule[0], p.capsule[1], 8, 20)) }
+    return { sphere, caps }
+  }, [parts])
   const [hover, setHover] = useState<string | null>(null)
 
   useFrame((state, delta) => {
@@ -93,7 +99,7 @@ function Body({ gender, selected, secondary, colors, pulse, interactive, ctl, on
           else color = BODY_COLORS.idle
         }
         return (
-          <Part key={p.key} part={p} geo={geo} color={color} emissive={emissive} glow={glow}
+          <Part key={p.key} part={p} geo={p.capsule ? (geos.caps.get(p.capsule.join(':')) ?? geos.sphere) : geos.sphere} color={color} emissive={emissive} glow={glow}
             pulse={m != null && pulse.includes(m)} interactive={interactive} onPick={onPick} onHover={hoverTo} />
         )
       })}

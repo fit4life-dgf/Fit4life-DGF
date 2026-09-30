@@ -45,7 +45,7 @@ export function WorkoutSummary({ data: d, profile, onDone, onRecovery }: Props) 
   )
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 [&>*]:min-w-0">
       <div className="text-center"><h1 className="text-2xl font-extrabold">Workout complete</h1><p className="text-sm text-ink2">{d.name}</p></div>
       {d.queued && <Notice text="You are offline. This workout is saved on your phone and will upload automatically when you are back online." />}
       <div className="grid grid-cols-2 gap-3">

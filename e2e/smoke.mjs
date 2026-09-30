@@ -140,7 +140,7 @@ async function run() {
 
     /* explorer */
     await page.getByRole('button', { name: /Explore muscles/ }).click()
-    await page.getByText('Select muscle group').first().waitFor()
+    await page.getByRole('heading', { name: 'Explore muscles' }).waitFor()
     await page.waitForTimeout(1500)
     await clickChest(page)
     let selected = await page.getByText('Selected', { exact: true }).isVisible().catch(() => false)
