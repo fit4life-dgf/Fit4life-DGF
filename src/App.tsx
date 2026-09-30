@@ -19,7 +19,12 @@ import { TeamPage } from './pages/TeamPage'
 import { ClientPage } from './pages/ClientPage'
 import { AdminPage } from './pages/AdminPage'
 import { BodyDetailsPage } from './pages/BodyDetailsPage'
+import { MusclesPage } from './features/workout/MusclesPage'
+import { WorkoutBuilder } from './features/workout/WorkoutBuilder'
+import { WorkoutDayFlow } from './features/workout/WorkoutDayFlow'
+import { RecoveryPage } from './features/workout/RecoveryPage'
 import { useNativeSync } from './hooks/useNativeSync'
+import { usePendingWorkouts } from './hooks/usePendingWorkouts'
 import { Skeleton } from './components/ui/Skeleton'
 import { Button } from './components/ui/Button'
 
@@ -43,6 +48,7 @@ export default function App() {
   const staff = profile?.role !== 'member'
   const admin = profile?.role === 'owner' || profile?.role === 'admin'
   useNativeSync(profile ?? null)
+  usePendingWorkouts(profile ?? null)
 
   if (!isConfigured) return <Notice title="App not configured" text="Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the environment, then redeploy." />
   if (loading) return <div className="min-h-screen bg-bg p-6"><Skeleton className="mx-auto mt-10 h-72 max-w-md" /></div>
@@ -58,6 +64,10 @@ export default function App() {
       case 'chat': return <ChatPage />
       case 'membership': return <MembershipPage />
       case 'bodydetails': return <BodyDetailsPage />
+      case 'muscles': return <MusclesPage />
+      case 'workoutday': return <WorkoutDayFlow />
+      case 'recovery': return <RecoveryPage />
+      case 'builder': return staff ? <WorkoutBuilder /> : null
       case 'team': return staff ? <TeamPage /> : null
       case 'client': return staff ? <ClientPage /> : null
       case 'admin': return admin ? <AdminPage /> : null

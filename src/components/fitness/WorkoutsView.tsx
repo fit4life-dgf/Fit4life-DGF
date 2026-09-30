@@ -1,22 +1,22 @@
-import { useMemo, useState } from 'react'
-import { Bike, Dumbbell, Footprints, Play, Zap } from 'lucide-react'
-import type { Exercise, PlanDay, Profile, SessionRow, WorkoutSeed } from '../../types'
-import { fetchExercises, fetchPlanDays, fetchSessions } from '../../services/workouts'
+import { useState } from 'react'
+import { Activity, Bike, Dumbbell, Footprints, Play, Zap } from 'lucide-react'
+import type { Profile, SessionRow, WorkoutSeed } from '../../types'
+import { useNav } from '../../contexts/NavContext'
+import { fetchPlanDays, fetchSessions } from '../../services/workouts'
 import { fetchMemberDetails } from '../../services/nutrition'
+import { pendingCount } from '../../services/workoutSystem'
 import { useAsync } from '../../hooks/useAsync'
 import { Card } from '../ui/Card'
-import { Sheet } from '../ui/Sheet'
-import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
-import { ErrorBox, LoadingBlocks } from '../ui/StateViews'
+import { ErrorBox, LoadingBlocks, Notice } from '../ui/StateViews'
 import { WorkoutPlayer } from './WorkoutPlayer'
 import { TINT } from '../ui/colors'
 
 const QUICK = [
   { label: 'Run', category: 'Running', Icon: Footprints },
   { label: 'Spinning', category: 'Spinning', Icon: Bike },
-  { label: 'Strength training', category: 'Strength', Icon: Dumbbell },
   { label: 'HIIT', category: 'HIIT', Icon: Zap },
+  { label: 'Yoga', category: 'Yoga', Icon: Activity },
 ]
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -31,58 +31,60 @@ function weekStrip(sessions: SessionRow[]): boolean[] {
 }
 
 export function WorkoutsView({ profile }: { profile: Profile }) {
+  const nav = useNav()
   const plan = useAsync(() => fetchPlanDays(profile.id), [profile.id])
   const sessions = useAsync(() => fetchSessions(profile.id, 30), [profile.id])
-  const lib = useAsync(fetchExercises, [])
   const details = useAsync(() => fetchMemberDetails(profile.id), [profile.id])
   const [seed, setSeed] = useState<WorkoutSeed | null>(null)
-  const [open, setOpen] = useState<Exercise | null>(null)
-  const [muscle, setMuscle] = useState('All')
-
-  const muscles = useMemo(() => ['All', ...Array.from(new Set((lib.data ?? []).map((e) => e.muscle)))], [lib.data])
-  const shown = (lib.data ?? []).filter((e) => muscle === 'All' || e.muscle === muscle)
   const today = new Date().getDay()
+  const pending = pendingCount(profile.id)
 
+  // Timed sessions (run, spinning, HIIT, yoga) use the simple timer player; strength workouts use the full set-by-set player.
   if (seed) {
     return <WorkoutPlayer seed={seed} profile={profile} weightKg={details.data?.weight_kg ?? null}
       onExit={() => { setSeed(null); void sessions.reload() }} />
   }
 
-  const startDay = (d: PlanDay) => setSeed({
-    name: d.name, category: 'Strength', dayId: d.id,
-    exercises: d.exercises.map((e) => ({ exercise: e.exercise, sets: e.sets, reps: e.reps, rest_sec: e.rest_sec })),
-  })
   const startFree = (category: string, label: string) => setSeed({ name: label, category, dayId: null, exercises: [] })
-
   const strip = weekStrip(sessions.data ?? [])
   const todayDay = plan.data?.days.find((d) => d.day_of_week === today)
 
   return (
     <div className="grid gap-5">
-      <section aria-label="Start a workout" className="grid gap-3">
-        <h2 className="text-base font-bold">Start a workout</h2>
+      {pending > 0 && <Notice text={`${pending} workout${pending === 1 ? '' : 's'} saved on this device will upload when you are back online.`} />}
+      <section aria-label="Today's workout" className="grid gap-3">
+        <h2 className="text-base font-bold">Today’s workout</h2>
+        {plan.loading ? <LoadingBlocks n={1} h="h-32" /> : plan.error ? <ErrorBox message={plan.error} onRetry={() => void plan.reload()} /> : todayDay ? (
+          <Card className={`${TINT.workout} border-0`}>
+            <p className="text-xs font-semibold text-ink/70">{plan.data?.planName} · {DAY_NAMES[todayDay.day_of_week]}</p>
+            <h3 className="text-lg font-extrabold text-ink">{todayDay.name}</h3>
+            <p className="text-sm text-ink/70">{todayDay.focus} · {todayDay.exercises.length} exercises{todayDay.est_minutes ? ` · about ${todayDay.est_minutes} min` : ''}</p>
+            <button onClick={() => nav.open('workoutday', todayDay.id)} className="mt-3 flex min-h-[44px] items-center gap-2 rounded-tile bg-ink px-5 text-sm font-semibold text-bg"><Play size={16} />Open workout</button>
+          </Card>
+        ) : <p className="rounded-tile bg-card2 p-4 text-sm text-ink2">{plan.data?.days.length ? 'Nothing is scheduled for today. Pick a day from your plan below.' : 'No plan yet. Your trainer will assign one, or you can explore exercises below.'}</p>}
+      </section>
+
+      <section aria-label="Explore" className="grid grid-cols-2 gap-3">
+        <button onClick={() => nav.open('muscles')} className="rounded-card border border-line bg-card p-4 text-left shadow-card"><Dumbbell size={20} className="mb-2 text-accent" aria-hidden /><span className="block text-sm font-bold">Explore muscles</span><span className="block text-xs text-ink2">Tap the 3D body to find exercises</span></button>
+        <button onClick={() => nav.open('recovery')} className="rounded-card border border-line bg-card p-4 text-left shadow-card"><Activity size={20} className="mb-2 text-accent" aria-hidden /><span className="block text-sm font-bold">Recovery map</span><span className="block text-xs text-ink2">See which muscles are ready</span></button>
+      </section>
+
+      <section aria-label="Your plan" className="grid gap-3">
+        <h2 className="text-base font-bold">Your plan{plan.data ? ` · ${plan.data.planName}` : ''}</h2>
+        {plan.loading ? <LoadingBlocks n={1} /> : plan.error ? null :
+          !plan.data || !plan.data.days.length ? <EmptyState icon={<Dumbbell />} title="No plan yet" text="Your trainer will assign a plan. You can still start a timed workout below or explore exercises." /> :
+            <ul className="grid gap-2">{plan.data.days.map((d) => (
+              <li key={d.id}><button onClick={() => nav.open('workoutday', d.id)} className="flex w-full items-center justify-between rounded-tile bg-card p-3 text-left shadow-card">
+                <span><span className="block text-sm font-bold">{DAY_NAMES[d.day_of_week]} · {d.name}</span><span className="block text-xs text-ink2">{d.focus} · {d.exercises.length} exercises</span></span><Play size={16} className="text-ink2" /></button></li>))}</ul>}
+      </section>
+
+      <section aria-label="Start a timed workout" className="grid gap-3">
+        <h2 className="text-base font-bold">Start a timed workout</h2>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {QUICK.map(({ label, category, Icon }) => (
             <button key={label} onClick={() => startFree(category, label)} className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-full bg-workout/40 px-4 text-sm font-semibold"><Icon size={16} />{label}</button>
           ))}
         </div>
-        {todayDay && (
-          <Card className={`${TINT.workout} border-0`}>
-            <p className="text-xs font-semibold text-ink/70">Today in your plan</p>
-            <h3 className="text-lg font-extrabold text-ink">{todayDay.name}</h3>
-            <p className="text-sm text-ink/70">{todayDay.focus} · {todayDay.exercises.length} exercises</p>
-            <button onClick={() => startDay(todayDay)} className="mt-3 flex min-h-[44px] items-center gap-2 rounded-tile bg-ink px-5 text-sm font-semibold text-bg"><Play size={16} />Start</button>
-          </Card>
-        )}
-      </section>
-
-      <section aria-label="Your plan" className="grid gap-3">
-        <h2 className="text-base font-bold">Your plan{plan.data ? ` · ${plan.data.planName}` : ''}</h2>
-        {plan.loading ? <LoadingBlocks n={1} /> : plan.error ? <ErrorBox message={plan.error} onRetry={() => void plan.reload()} /> :
-          !plan.data || !plan.data.days.length ? <EmptyState icon={<Dumbbell />} title="No plan yet" text="Your trainer will assign a plan. You can still start any workout above." /> :
-            <ul className="grid gap-2">{plan.data.days.map((d) => (
-              <li key={d.id}><button onClick={() => startDay(d)} className="flex w-full items-center justify-between rounded-tile bg-card p-3 text-left shadow-card">
-                <span><span className="block text-sm font-bold">{DAY_NAMES[d.day_of_week]} · {d.name}</span><span className="block text-xs text-ink2">{d.focus} · {d.exercises.length} exercises</span></span><Play size={16} className="text-ink2" /></button></li>))}</ul>}
       </section>
 
       <section aria-label="Recent activities" className="grid gap-3">
@@ -96,19 +98,6 @@ export function WorkoutsView({ profile }: { profile: Profile }) {
             <ul className="grid gap-2">{(sessions.data ?? []).slice(0, 8).map((s) => (
               <li key={s.id} className="flex items-center justify-between rounded-tile bg-card p-3 shadow-card"><span><span className="block text-sm font-bold">{s.name}</span><span className="block text-xs text-ink2">{new Date(s.started_at).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · {s.duration_min ?? 0} min</span></span><span className="tabular text-sm font-bold">{s.calories ?? 0}<small className="ml-0.5 text-xs font-medium text-ink2">kcal</small></span></li>))}</ul>}
       </section>
-
-      <section aria-label="Exercise library" className="grid gap-3">
-        <h2 className="text-base font-bold">Exercise library</h2>
-        <div className="flex gap-2 overflow-x-auto pb-1">{muscles.map((m) => <button key={m} onClick={() => setMuscle(m)} className={`min-h-[40px] shrink-0 rounded-full px-3 text-sm font-semibold ${muscle === m ? 'bg-accent text-white' : 'bg-card2'}`}>{m}</button>)}</div>
-        {lib.loading ? <LoadingBlocks n={2} h="h-16" /> : lib.error ? <ErrorBox message={lib.error} onRetry={() => void lib.reload()} /> :
-          <ul className="grid gap-2 sm:grid-cols-2">{shown.map((e) => (
-            <li key={e.id}><button onClick={() => setOpen(e)} className="w-full rounded-tile bg-card p-3 text-left shadow-card"><span className="block text-sm font-bold">{e.name}</span><span className="block text-xs text-ink2">{e.muscle} · {e.equipment} · {e.level}</span></button></li>))}</ul>}
-      </section>
-
-      <Sheet open={open != null} title={open?.name ?? ''} onClose={() => setOpen(null)}>
-        {open && <div className="grid gap-3"><p className="text-sm text-ink2">{open.muscle} · {open.equipment} · {open.level}</p><p className="text-sm">{open.cue ?? 'No coaching cue yet.'}</p>
-          <Button onClick={() => { const e = open; setOpen(null); setSeed({ name: e.name, category: 'Strength', dayId: null, exercises: [{ exercise: e, sets: 3, reps: '10', rest_sec: 60 }] }) }}>Start with this exercise</Button></div>}
-      </Sheet>
     </div>
   )
 }

@@ -18,6 +18,7 @@ import { Button } from '../components/ui/Button'
 import { Sheet } from '../components/ui/Sheet'
 import { NumberField } from '../components/ui/NumberField'
 import { ErrorBox, LoadingBlocks, Notice } from '../components/ui/StateViews'
+import { TrainingView } from '../components/progress/TrainingView'
 
 export function ClientPage() {
   const { profile } = useAuth()
@@ -87,9 +88,12 @@ export function ClientPage() {
           {diet.data && <Card className="text-sm"><h2 className="font-bold">Current diet plan</h2><p>{diet.data.title}: {diet.data.calories ?? '—'} kcal, {diet.data.protein_g ?? '—'}g protein</p></Card>}
         </>
       )}
-      <div className="grid gap-2 sm:grid-cols-3">
+      <Card className="grid gap-3"><h2 className="font-bold">Training analytics</h2><TrainingView userId={id} />
+        <Button variant="soft" onClick={() => nav.open('recovery', id)}>Open recovery map</Button></Card>
+      <div className="grid gap-2 sm:grid-cols-2">
         <Button onClick={() => nav.open('chat', id)}>Message</Button>
-        <Button variant="soft" onClick={() => setSheet('plan')}>Assign workout plan</Button>
+        <Button variant="soft" onClick={() => nav.open('builder', id)}>Build workout (3D)</Button>
+        <Button variant="soft" onClick={() => setSheet('plan')}>Assign template plan</Button>
         <Button variant="soft" onClick={() => { if (suggested) { setCal(suggested.calories); setPro(suggested.protein_g); setCarb(suggested.carbs_g); setFat(suggested.fat_g) } setSheet('diet') }}>Assign diet plan</Button>
       </div>
 

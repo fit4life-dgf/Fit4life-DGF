@@ -87,6 +87,7 @@ export type MetricColor =
 export type DetailId =
   | 'sleep' | 'health' | 'notifications' | 'messages' | 'chat' | 'membership'
   | 'team' | 'client' | 'admin' | 'workout' | 'exercises' | 'bodydetails'
+  | 'muscles' | 'builder' | 'workoutday' | 'recovery'
 export interface DetailState { id: DetailId; param?: string }
 export interface Nav {
   tab: TabId
@@ -104,6 +105,10 @@ export interface Exercise {
   equipment: string
   level: string
   cue: string | null
+  primary_muscle?: string | null
+  secondary?: string[]
+  instructions?: string[]
+  video_url?: string | null
 }
 export interface PlanExercise {
   id: string
@@ -112,6 +117,11 @@ export interface PlanExercise {
   sets: number
   reps: string
   rest_sec: number
+  weight_kg?: number | null
+  tempo?: string | null
+  rpe?: number | null
+  rir?: number | null
+  notes?: string | null
   exercise: Exercise
 }
 export interface PlanDay {

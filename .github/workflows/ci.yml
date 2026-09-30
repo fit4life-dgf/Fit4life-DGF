@@ -1,0 +1,50 @@
+name: CI
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: https://zwiifeyqkeivkyssfzfu.supabase.co
+      VITE_SUPABASE_ANON_KEY: sb_publishable_P8702RqV_xtYa5kBn-LFPA_Rb1Mzom7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install
+        id: install
+        run: |
+          set +e
+          npm install > "$RUNNER_TEMP/install.log" 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then echo "::error title=install::$(tail -n 25 "$RUNNER_TEMP/install.log" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"; fi
+          exit $code
+      - name: Type check (tsc --noEmit)
+        if: always() && steps.install.outcome == 'success'
+        run: |
+          set +e
+          npx tsc --noEmit > "$RUNNER_TEMP/tsc.log" 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then echo "::error title=typecheck::$(head -n 60 "$RUNNER_TEMP/tsc.log" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"; fi
+          exit $code
+      - name: Unit tests
+        if: always() && steps.install.outcome == 'success'
+        run: |
+          set +e
+          npm test > "$RUNNER_TEMP/test.log" 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then echo "::error title=tests::$(grep -E 'FAIL|failed|Error' "$RUNNER_TEMP/test.log" | head -n 30 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"; fi
+          exit $code
+      - name: Production build
+        if: always() && steps.install.outcome == 'success'
+        run: |
+          set +e
+          npm run build > "$RUNNER_TEMP/build.log" 2>&1
+          code=$?
+          tail -n 25 "$RUNNER_TEMP/build.log"
+          if [ $code -ne 0 ]; then echo "::error title=build::$(tail -n 40 "$RUNNER_TEMP/build.log" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"; fi
+          exit $code
