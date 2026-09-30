@@ -1,0 +1,23 @@
+name: Build iOS app (check only)
+# A signed App Store build needs an Apple Developer account, certificates and a provisioning profile.
+# This job proves the iOS project builds; add signing secrets before shipping to TestFlight.
+on:
+  workflow_dispatch:
+
+jobs:
+  ios:
+    runs-on: macos-15
+    env:
+      VITE_SUPABASE_URL: https://zwiifeyqkeivkyssfzfu.supabase.co
+      VITE_SUPABASE_ANON_KEY: sb_publishable_P8702RqV_xtYa5kBn-LFPA_Rb1Mzom7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install && npm run build
+      - name: Create iOS project
+        working-directory: mobile
+        run: npm install && npm run add:ios
+      - name: Build for simulator
+        working-directory: mobile/ios/App
+        run: xcodebuild -workspace App.xcworkspace -scheme App -sdk iphonesimulator -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
