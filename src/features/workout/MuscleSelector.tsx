@@ -19,7 +19,7 @@ export function MuscleSelector({ title = 'Select muscle group', hint = 'Tap a mu
   const [sel, setSel] = useState<string | null>(null)
   const n = sel ? countFor(sel) : 0
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 pb-28">
       <PageHeader title={title} onBack={onBack} />
       <Segmented<'male' | 'female'> label="Body model" value={gender} onChange={setGender} options={[{ id: 'male', label: 'Male' }, { id: 'female', label: 'Female' }]} />
       <p className="text-sm text-ink2">{hint}</p>
