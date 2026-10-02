@@ -1,4 +1,5 @@
-import { Play, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import { Info, Play, RotateCcw } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -6,6 +7,7 @@ import { MuscleBodyView } from '../../components/muscle3d/MuscleBodyView'
 import { muscleName } from '../../components/muscle3d/muscleMap'
 import { estimateMinutes } from '../../utils/workoutMath'
 import { ExThumb, configLine, DOW } from './common'
+import { ExerciseDetail } from './ExerciseDetail'
 import { doneSets, totalSets, type Active, type DayLike } from './session'
 
 interface Props { day: DayLike; planName: string | null; dow?: number; resume: Active | null; busy: boolean; onStart: () => void; onResume: () => void; onDiscard: () => void; onBack: () => void }
@@ -14,6 +16,15 @@ interface Props { day: DayLike; planName: string | null; dow?: number; resume: A
 export function TodayWorkout({ day, planName, dow, resume, busy, onStart, onResume, onDiscard, onBack }: Props) {
   const mins = day.est_minutes ?? estimateMinutes(day.exercises.map((e) => ({ sets: e.sets, rest_sec: e.rest_sec })))
   const sets = day.exercises.reduce((a, e) => a + e.sets, 0)
+  const [info, setInfo] = useState<DayLike['exercises'][number] | null>(null)
+  // Only a plan the trainer assigned carries assignment values; a quick single-exercise day has none.
+  const assigned = day.id != null
+  if (info) {
+    return (
+      <ExerciseDetail exercise={info.exercise} onBack={() => setInfo(null)}
+        assignment={assigned ? { sets: info.sets, reps: info.reps, restSeconds: info.rest_sec, tempo: info.tempo } : null} />
+    )
+  }
   const prim = Array.from(new Set(day.exercises.map((e) => e.exercise.primary_muscle).filter((m): m is string => !!m)))
   return (
     <div className="grid gap-4">
@@ -39,6 +50,7 @@ export function TodayWorkout({ day, planName, dow, resume, busy, onStart, onResu
           <li key={e.id} className="flex items-center gap-3 rounded-tile bg-card p-3 shadow-card">
             <ExThumb ex={e.exercise} size={48} />
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{i + 1}. {e.exercise.name}</p><p className="text-xs text-ink2">{configLine({ sets: e.sets, reps: Number(/\d+/.exec(e.reps)?.[0] ?? 10), weight_kg: e.weight_kg ?? 0, rest_sec: e.rest_sec })}</p>{e.notes && <p className="text-xs text-ink2">Coach: {e.notes}</p>}</div>
+            <button type="button" aria-label={`Details for ${e.exercise.name}`} onClick={() => setInfo(e)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-card2 text-ink2"><Info size={18} /></button>
           </li>
         ))}
       </ol>
