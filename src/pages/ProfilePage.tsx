@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useTheme, type ThemeMode } from '../contexts/ThemeContext'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { ProfilePhoto } from '../components/profile/ProfilePhoto'
 
 const MODES: ThemeMode[] = ['system', 'light', 'dark']
 
@@ -36,8 +37,8 @@ export function ProfilePage() {
     <div className="grid max-w-xl gap-4">
       <h1 className="text-2xl font-extrabold">Profile</h1>
       <Card>
-        <p className="text-lg font-bold">{profile.full_name}</p>
-        <p className="text-sm text-ink2">{session?.user.email}</p>
+        <ProfilePhoto />
+        <p className="mt-3 text-sm text-ink2">{session?.user.email}</p>
         <span className="mt-2 inline-block rounded-full bg-card2 px-3 py-1 text-xs font-bold capitalize">{profile.role}</span>
       </Card>
       <Card className="grid gap-2">

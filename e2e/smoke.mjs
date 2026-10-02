@@ -247,6 +247,26 @@ async function run() {
     await ctx.close()
   }
 
+  /* ---------- profile photo: avatar space + upload ---------- */
+  {
+    const { ctx, page } = await setup(browser, 'member')
+    await page.route('**/storage/v1/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: 'fit-photos/x', signedURL: '/object/sign/fit-photos/x?token=t' }) }))
+    await page.goto(BASE)
+    await page.getByRole('button', { name: /Profile/ }).first().click()
+    await page.getByRole('button', { name: 'Upload photo' }).waitFor()
+    ok('profile photo: round avatar space with initials shown', await page.getByTestId('avatar').first().isVisible())
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+    const before = calls.length
+    await page.getByLabel('Choose profile photo').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: png })
+    await page.getByText('Profile photo updated.').waitFor({ timeout: 10000 })
+    const upd = calls.slice(before).find((c) => c.table === 'profiles' && c.method === 'PATCH')
+    ok('profile photo: upload saves avatar_url on the profile', upd && upd.body && /\/avatar-\d+\.jpg$/.test(upd.body.avatar_url), JSON.stringify(upd?.body))
+    await page.getByRole('radio', { name: 'Rectangle' }).click()
+    ok('profile photo: rectangle shape selectable', (await page.getByRole('radio', { name: 'Rectangle' }).getAttribute('aria-checked')) === 'true')
+    await shot(page, '14-profile-photo')
+    await ctx.close()
+  }
+
   /* ---------- 3D asset diagnostics: the whole GLB pipeline with the committed test model ---------- */
   {
     const { ctx, page } = await setup(browser, 'admin')

@@ -1,3 +1,4 @@
+import { Avatar, readShape } from '../components/profile/Avatar'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Bell, Droplets, Flame, Footprints, Heart, Moon, Play, Plus, Zap } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -47,9 +48,12 @@ export function TodayPage() {
   return (
     <div className="grid gap-4">
       <header className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-ink2">{longDate()}</p>
-          <h1 className="text-2xl font-extrabold">{greeting()}, {first}</h1>
+        <div className="flex items-center gap-3">
+          <Avatar name={profile.full_name} path={profile.avatar_url} size={48} shape={readShape()} />
+          <div>
+            <p className="text-sm text-ink2">{longDate()}</p>
+            <h1 className="text-2xl font-extrabold">{greeting()}, {first}</h1>
+          </div>
         </div>
         <button aria-label={`Notifications${unread.data ? `, ${unread.data} unread` : ''}`} onClick={() => nav.open('notifications')} className="relative flex h-11 w-11 items-center justify-center rounded-full bg-card shadow-card">
           <Bell size={20} />

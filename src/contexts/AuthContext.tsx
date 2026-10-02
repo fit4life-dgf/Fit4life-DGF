@@ -12,6 +12,7 @@ interface AuthCtx {
   signUp: (name: string, email: string, password: string) => Promise<string | null>
   signOut: () => Promise<void>
   changePassword: (password: string) => Promise<string | null>
+  refreshProfile: () => Promise<void>
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -78,12 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         await supabase.auth.signOut()
       },
+      refreshProfile: async () => { if (session) await loadProfile(session.user.id) },
       changePassword: async (password) => {
         const { error } = await supabase.auth.updateUser({ password })
         return error ? error.message : null
       },
     }),
-    [session, profile, loading, profileError],
+    [session, profile, loading, profileError, loadProfile],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

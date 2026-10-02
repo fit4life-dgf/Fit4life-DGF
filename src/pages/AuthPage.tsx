@@ -1,3 +1,4 @@
+import { User } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from '../components/ui/Button'
@@ -28,9 +29,12 @@ export function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg p-4 text-ink">
       <form onSubmit={(e) => void submit(e)} className="grid w-full max-w-sm gap-4 rounded-card border border-line bg-card p-6 shadow-card animate-rise">
-        <div>
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-line text-ink2"><User size={26} /></span>
+          <div>
           <div className="text-2xl font-extrabold tracking-tight">FIT<span className="text-accent">4</span>LIFE</div>
           <p className="text-sm text-ink2">{mode === 'in' ? 'Sign in to your training app' : 'Create your account'}</p>
+          </div>
         </div>
         {mode === 'up' && (
           <div className="grid gap-1"><label htmlFor="nm" className="text-sm font-semibold">Full name</label><input id="nm" autoComplete="name" className={field} value={name} onChange={(e) => setName(e.target.value)} /></div>
