@@ -86,7 +86,7 @@ function useGlb(urls: (string | null)[]): GlbState {
     let loaded: GLTF | null = null
     setSt({ state: 'loading', progress: 0, gltf: null, url: null })
     const loader = new GLTFLoader()
-    loader.setMeshoptDecoder(MeshoptDecoder())
+    loader.setMeshoptDecoder(MeshoptDecoder)
     const attempt = (i: number) => {
       if (i >= list.length) { if (!dead) setSt({ state: 'missing', progress: 0, gltf: null, url: null }); return }
       loader.load(
