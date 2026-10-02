@@ -73,6 +73,13 @@ async function setup(browser, role) {
     } else if (table === 'exercises') data = EX
     else if (table === 'workout_plans') data = PLAN
     else if (table === 'workout_templates') data = []
+    else if (table === 'training_goals') data = [{ id: 'hypertrophy', name: 'Hypertrophy' }, { id: 'strength', name: 'Strength' }, { id: 'endurance', name: 'Muscular endurance' }, { id: 'beginner', name: 'Beginner / general fitness' }]
+    else if (table === 'exercise_goal_prescriptions') {
+      data = q.includes('exercise_id=eq.e1') ? [
+        { exercise_id: 'e1', goal_id: 'hypertrophy', sets_min: 3, sets_max: 4, reps_min: 6, reps_max: 12, rest_min_seconds: 90, rest_max_seconds: 150, tempo: null },
+        { exercise_id: 'e1', goal_id: 'strength', sets_min: 3, sets_max: 5, reps_min: 3, reps_max: 6, rest_min_seconds: 180, rest_max_seconds: 300, tempo: null },
+      ] : []
+    }
     if (single) return json(data[0] ?? null)
     return json(data)
   })
@@ -163,6 +170,11 @@ async function run() {
     await shot(page, '08-exercise-detail')
     ok('screen 3: detail shows role legend and lists', (await page.getByText('Stabilizers').count()) > 0 && await page.getByLabel('Colour key').isVisible())
     ok('screen 3: tabs switch', await (async () => { await page.getByRole('tab', { name: 'Instructions' }).click(); await page.getByRole('tab', { name: 'Breathing' }).click(); return await page.getByText('Breathing guidance has not been added').isVisible() })())
+    ok('priority: goal default shown and labelled for a library exercise', (await page.getByText('3-4', { exact: true }).first().isVisible()) && (await page.getByText('Goal default').count()) >= 3)
+    await page.getByLabel('Training goal').selectOption('strength')
+    ok('goal selector switches the default', await page.getByText('3-6', { exact: true }).first().isVisible())
+    await page.getByLabel('Training goal').selectOption('hypertrophy')
+    ok('clients cannot edit goal defaults', (await page.getByRole('button', { name: /Edit .* default/ }).count()) === 0)
     ok('3d: placeholder shown and layer/animation controls degrade', await page.getByText(/3D anatomy asset not installed/).isVisible() && await page.getByRole('button', { name: 'Skin', exact: true }).isDisabled() && await page.getByText(/No movement animation/).isVisible())
     await ctx.close()
   }
@@ -182,21 +194,32 @@ async function run() {
     await page.locator('summary').click()
     await page.getByRole('button', { name: 'Chest', exact: true }).click()
     await page.getByRole('button', { name: /View exercises/ }).click()
+    await page.getByRole('button', { name: 'Open Bench Press' }).click()
+    await page.getByRole('heading', { name: 'Muscles involved' }).waitFor()
+    await page.getByRole('button', { name: /Edit Hypertrophy default/ }).click()
+    await page.getByRole('button', { name: 'Increase Sets min' }).click()
+    await page.getByRole('button', { name: 'Save default' }).click()
+    await page.waitForTimeout(800)
+    const egp = calls.find((c) => c.table === 'exercise_goal_prescriptions')
+    ok('trainer can save a goal default', egp && egp.method === 'POST' && egp.body.sets_min === 4 && egp.body.goal_id === 'hypertrophy' && egp.body.exercise_id === 'e1', JSON.stringify(egp?.body))
+    await page.getByRole('button', { name: 'Back' }).first().click()
     await page.getByRole('button', { name: 'Add Bench Press' }).click()
     await page.getByRole('heading', { name: 'Configure exercise' }).waitFor()
+    await page.waitForTimeout(500)
+    ok('builder prefills from the goal default', await page.getByText(/Prefilled from the Hypertrophy default: 3-4 sets, 6-12 reps, 90-150 sec rest/).isVisible())
     await page.getByRole('button', { name: 'Increase Sets' }).click()
     await page.getByRole('button', { name: 'Increase Weight' }).click()
     await shot(page, '09-configure')
     await page.getByRole('button', { name: 'Add to workout' }).click()
     await page.getByText('1. Bench Press').waitFor()
-    ok('screen 4/builder: configured exercise appears in the day', await page.getByText(/4 × 10 · 2.5 kg/).isVisible())
+    ok('screen 4/builder: configured exercise appears in the day', await page.getByText(/4 × 9 · 2.5 kg/).isVisible())
     await shot(page, '10-builder')
     await page.getByRole('button', { name: /Assign to Test Client/ }).click()
     await page.getByRole('heading', { name: 'Workout assigned' }).waitFor({ timeout: 15000 })
     const plans = calls.filter((c) => c.table === 'workout_plans')
     const exs = calls.find((c) => c.table === 'workout_exercises')
     ok('plan created inactive then activated', plans.some((c) => c.method === 'POST' && c.body.active === false) && plans.some((c) => c.method === 'PATCH' && c.body.active === true))
-    ok('exercise saved with sets/reps/weight', exs && exs.body[0].sets === 4 && exs.body[0].weight_kg === 2.5 && exs.body[0].exercise_id === 'e1', JSON.stringify(exs?.body).slice(0, 200))
+    ok('exercise saved with sets/reps/weight', exs && exs.body[0].sets === 4 && exs.body[0].reps === '9' && exs.body[0].rest_sec === 120 && exs.body[0].weight_kg === 2.5 && exs.body[0].exercise_id === 'e1', JSON.stringify(exs?.body).slice(0, 200))
     await shot(page, '11-assigned')
     await ctx.close()
   }

@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { useAsync } from '../../hooks/useAsync'
+import { useAuth } from '../../contexts/AuthContext'
+import { readGoal, writeGoal } from './goalPref'
+import { GoalDefaultsEditor } from './GoalDefaultsEditor'
 import { fetchGoalPrescriptions, fetchTrainingGoals } from '../../services/workoutSystem'
 import { formatRange, formatRest, goalDefaultLayer, NOT_PRESCRIBED, resolvePrescription, SOURCE_LABEL, type Layer } from '../../utils/prescription'
 import type { Exercise } from '../../types'
@@ -16,8 +19,7 @@ interface Props {
   program?: Layer | null
 }
 
-const GOAL_KEY = 'f4l_training_goal'
-const readGoal = (): string => { try { return localStorage.getItem(GOAL_KEY) || 'hypertrophy' } catch { return 'hypertrophy' } }
+
 
 type Tab = 'overview' | 'instructions' | 'mistakes' | 'breathing' | 'tips'
 const TABS: { id: Tab; label: string }[] = [
@@ -46,9 +48,13 @@ function RoleList({ title, ids, color }: { title: string; ids: string[]; color: 
 export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction, assignment = null, program = null }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
   const [goal, setGoalState] = useState(readGoal)
-  const setGoal = (g: string) => { setGoalState(g); try { localStorage.setItem(GOAL_KEY, g) } catch { /* private mode */ } }
+  const setGoal = (g: string) => { setGoalState(g); writeGoal(g) }
+  const { profile } = useAuth()
+  const isStaff = profile != null && profile.role !== 'member'
+  const [editing, setEditing] = useState(false)
   const goals = useAsync(() => fetchTrainingGoals(), [])
   const rows = useAsync(() => fetchGoalPrescriptions(e.id), [e.id])
+  const goalName = (goals.data ?? []).find((g) => g.id === goal)?.name ?? goal
   const rx = resolvePrescription({ assignment, program, goalDefault: goalDefaultLayer(rows.data, goal) })
   const fields: [string, string, string][] = [
     ['Sets', formatRange(rx.sets.value), SOURCE_LABEL[rx.sets.source]], ['Reps', formatRange(rx.reps.value), SOURCE_LABEL[rx.reps.source]],
@@ -114,6 +120,9 @@ export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction, ass
                     <div key={k} className="min-w-0 rounded-card bg-card2 px-1 py-2"><div className="text-[11px] text-ink2">{k}</div><div className="text-sm font-bold">{v}</div><div className="text-[10px] text-ink2">{src}</div></div>
                   ))}
                 </div>
+                {isStaff && <Button variant="soft" onClick={() => setEditing(true)}>Edit {goalName} default</Button>}
+                {editing && <GoalDefaultsEditor key={goal} open exerciseId={e.id} exerciseName={e.name} goalId={goal} goalName={goalName} current={(rows.data ?? []).find((r) => r.goal_id === goal) ?? null}
+                  onClose={() => setEditing(false)} onSaved={() => void rows.reload()} />}
                 <p className="text-xs text-ink2">Goal defaults are general guideline ranges, not a personal plan. Your trainer's values replace them.</p>
                 <p className="text-sm"><span className="font-semibold">Equipment: </span>{e.equipment}</p>
                 {e.cue && <p className="rounded-card bg-workout/30 p-3 text-sm"><span className="font-bold">Coaching cue: </span>{e.cue}</p>}

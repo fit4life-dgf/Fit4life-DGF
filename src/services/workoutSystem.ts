@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 import type { Exercise, Profile } from '../types'
 import { estimateBurn } from '../utils/energy'
-import type { GoalPrescriptionRow } from '../utils/prescription'
+import type { GoalDefaultInput, GoalPrescriptionRow } from '../utils/prescription'
 import { e1rm, totalVolume, type ExMuscles, type SetRowLite } from '../utils/workoutMath'
 
 function fail(message: string): never { throw new Error(message) }
@@ -45,6 +45,19 @@ export async function fetchGoalPrescriptions(exerciseId: string): Promise<GoalPr
     if (error) return []
     return (data ?? []) as GoalPrescriptionRow[]
   } catch { return [] }
+}
+
+export async function saveGoalPrescription(exerciseId: string, goalId: string, v: GoalDefaultInput): Promise<void> {
+  const { error } = await supabase.from('exercise_goal_prescriptions').upsert({
+    exercise_id: exerciseId, goal_id: goalId, sets_min: v.sets_min, sets_max: v.sets_max, reps_min: v.reps_min, reps_max: v.reps_max,
+    rest_min_seconds: v.rest_min_seconds, rest_max_seconds: v.rest_max_seconds, tempo: v.tempo.trim() || null, source: 'set by trainer',
+  }, { onConflict: 'exercise_id,goal_id' })
+  if (error) fail(error.message)
+}
+
+export async function deleteGoalPrescription(exerciseId: string, goalId: string): Promise<void> {
+  const { error } = await supabase.from('exercise_goal_prescriptions').delete().eq('exercise_id', exerciseId).eq('goal_id', goalId)
+  if (error) fail(error.message)
 }
 
 export function muscleMapOf(lib: Exercise[]): Record<string, ExMuscles> {

@@ -163,7 +163,7 @@ export function WorkoutBuilder() {
     const editing = editKey ? day.exercises.find((x) => x.key === editKey) : null
     const ex = editing?.exercise ?? picked
     if (ex) {
-      return <ConfigureExercise exercise={ex} initial={editing ?? DEFAULT_CONFIG} saveLabel={editing ? 'Save changes' : 'Add to workout'}
+      return <ConfigureExercise exercise={ex} initial={editing ?? DEFAULT_CONFIG} prefill={!editing} saveLabel={editing ? 'Save changes' : 'Add to workout'}
         onBack={() => { const wasEdit = editKey != null; setEditKey(null); setStep(wasEdit ? 'draft' : picked ? 'library' : 'draft') }} onSave={saveConfig} />
     }
   }

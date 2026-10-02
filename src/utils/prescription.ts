@@ -76,3 +76,34 @@ export function goalDefaultLayer(rows: GoalPrescriptionRow[] | undefined | null,
     restSeconds: { min: r.rest_min_seconds, max: r.rest_max_seconds }, tempo: r.tempo,
   }
 }
+
+/** A starting point for the trainer's form, taken from the middle of a goal default range (rest rounded to 15 s). */
+export function suggestFromLayer(layer: Layer | null): { sets: number; reps: number; rest_sec: number; tempo: string } | null {
+  if (!layer) return null
+  const sets = toRange(layer.sets), reps = toRange(layer.reps), rest = toRange(layer.restSeconds, true)
+  if (!sets || !reps || !rest) return null
+  return {
+    sets: Math.floor((sets.min + sets.max) / 2),
+    reps: Math.floor((reps.min + reps.max) / 2),
+    rest_sec: Math.round((rest.min + rest.max) / 2 / 15) * 15,
+    tempo: toTempo(layer.tempo) ?? '',
+  }
+}
+
+export interface GoalDefaultInput {
+  sets_min: number; sets_max: number; reps_min: number; reps_max: number
+  rest_min_seconds: number; rest_max_seconds: number; tempo: string
+}
+const TEMPO_RE = /^[0-9X]-[0-9X]-[0-9X]-[0-9X]$/i
+/** Null when the values can be saved, otherwise a message for the trainer. */
+export function validateGoalDefault(v: GoalDefaultInput): string | null {
+  const whole = (n: number) => Number.isInteger(n)
+  if (![v.sets_min, v.sets_max, v.reps_min, v.reps_max, v.rest_min_seconds, v.rest_max_seconds].every(whole)) return 'Use whole numbers.'
+  if (v.sets_min < 1 || v.reps_min < 1) return 'Sets and reps must be at least 1.'
+  if (v.rest_min_seconds < 0) return 'Rest cannot be negative.'
+  if (v.sets_max < v.sets_min) return 'Maximum sets must be at least the minimum.'
+  if (v.reps_max < v.reps_min) return 'Maximum reps must be at least the minimum.'
+  if (v.rest_max_seconds < v.rest_min_seconds) return 'Maximum rest must be at least the minimum.'
+  if (v.tempo.trim() !== '' && !TEMPO_RE.test(v.tempo.trim())) return 'Tempo needs four characters separated by dashes, like 3-1-1-0.'
+  return null
+}

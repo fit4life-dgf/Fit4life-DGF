@@ -123,7 +123,7 @@ eq('layer muscle', layerOf('muscle_quadriceps_L'), 'muscle')
 eq('layer other', layerOf('Armature'), 'other')
 eq('normalise side', normaliseMeshName('L_Biceps'), { base: 'biceps', side: 'left' })
 
-import { resolvePrescription, toRange, formatRange, formatRest, goalDefaultLayer } from '../src/utils/prescription.ts'
+import { resolvePrescription, toRange, formatRange, formatRest, goalDefaultLayer, suggestFromLayer, validateGoalDefault } from '../src/utils/prescription.ts'
 const GD = { sets: { min: 3, max: 4 }, reps: { min: 8, max: 12 }, restSeconds: { min: 90, max: 150 }, tempo: '3-1-1-0' }
 const PR = { sets: 5, reps: '6-8', restSeconds: 120, tempo: '2-0-2-0' }
 const AS = { sets: 4, reps: 10, restSeconds: 75, tempo: '3-1-1' }
@@ -160,5 +160,21 @@ eq('fmt rest null', formatRest(null), 'Not prescribed')
 eq('goal layer picks goal', goalDefaultLayer([{ exercise_id: 'e', goal_id: 'strength', sets_min: 3, sets_max: 5, reps_min: 3, reps_max: 6, rest_min_seconds: 180, rest_max_seconds: 300, tempo: null }], 'strength')?.reps, { min: 3, max: 6 })
 eq('goal layer other goal', goalDefaultLayer([{ exercise_id: 'e', goal_id: 'strength', sets_min: 3, sets_max: 5, reps_min: 3, reps_max: 6, rest_min_seconds: 180, rest_max_seconds: 300, tempo: null }], 'endurance'), null)
 eq('goal layer none', goalDefaultLayer(null, 'strength'), null)
+
+eq('suggest hypertrophy compound', suggestFromLayer(GD), { sets: 3, reps: 10, rest_sec: 120, tempo: '3-1-1-0' })
+eq('suggest endurance', suggestFromLayer({ sets: { min: 2, max: 3 }, reps: { min: 15, max: 25 }, restSeconds: { min: 30, max: 60 }, tempo: null }), { sets: 2, reps: 20, rest_sec: 45, tempo: '' })
+eq('suggest strength', suggestFromLayer({ sets: { min: 3, max: 5 }, reps: { min: 3, max: 6 }, restSeconds: { min: 180, max: 300 } }), { sets: 4, reps: 4, rest_sec: 240, tempo: '' })
+eq('suggest null layer', suggestFromLayer(null), null)
+eq('suggest incomplete layer', suggestFromLayer({ sets: { min: 3, max: 4 } }), null)
+const OKV = { sets_min: 3, sets_max: 4, reps_min: 8, reps_max: 12, rest_min_seconds: 60, rest_max_seconds: 90, tempo: '' }
+eq('validate ok', validateGoalDefault(OKV), null)
+eq('validate ok with tempo', validateGoalDefault({ ...OKV, tempo: '3-1-1-0' }), null)
+eq('validate sets order', validateGoalDefault({ ...OKV, sets_max: 2 }), 'Maximum sets must be at least the minimum.')
+eq('validate reps order', validateGoalDefault({ ...OKV, reps_max: 5 }), 'Maximum reps must be at least the minimum.')
+eq('validate rest order', validateGoalDefault({ ...OKV, rest_max_seconds: 30 }), 'Maximum rest must be at least the minimum.')
+eq('validate zero sets', validateGoalDefault({ ...OKV, sets_min: 0 }), 'Sets and reps must be at least 1.')
+eq('validate negative rest', validateGoalDefault({ ...OKV, rest_min_seconds: -15 }), 'Rest cannot be negative.')
+eq('validate fraction', validateGoalDefault({ ...OKV, reps_min: 8.5 }), 'Use whole numbers.')
+eq('validate tempo', validateGoalDefault({ ...OKV, tempo: 'fast' }), 'Tempo needs four characters separated by dashes, like 3-1-1-0.')
 
 if (fails) { console.error(fails + ' test(s) failed'); process.exit(1) }
