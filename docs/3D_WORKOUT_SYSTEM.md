@@ -16,3 +16,26 @@ Exercise demonstrations: muscle-activation view now; `exercises.video_url` plays
 
 ## Caveats
 Muscle recovery and readiness are training-load estimates, not medical measurements.
+
+## Dropping in a licensed anatomy model (GLB)
+
+The viewer loads `/public/3d/anatomy/male-body.glb` (or `female-body.glb`) automatically. If the file is missing, or is not a valid
+glTF (for example the host returns the app's HTML page), the built-in procedural placeholder body is used and a small badge says so.
+An exercise can carry its own model: set `exercises.animation_url` (and optionally `animation_clip`) and that file is tried first,
+then the anatomy model, then the placeholder.
+
+Model requirements: glTF 2.0 / GLB, Meshopt compression is supported (Draco is not wired up), muscles as separate meshes, optional
+skin and skeleton meshes, optional animation clips. The model is auto-scaled to a 1.8-unit height and centred.
+
+Mesh names are never read outside `src/components/muscle3d/meshMap.ts`. `MUSCLE_MESH_MAP` lists alias fragments for each muscle id
+(`muscle_pectoralis_major_L`, `Pectoralis_Major_Left`, `Biceps_Brachii_Right.001` all resolve). The longest alias wins, so
+`biceps_femoris` is a hamstring. To support another vendor's names, push aliases into `MUSCLE_MESH_MAP` or edit it; no other code changes.
+Meshes whose names contain words like `skin` or `bone` are put in the skin / skeleton layer (lists in the same file).
+
+Colours: red primary, orange secondary, yellow stabilizer, grey not involved, green selected or inspected. Roles come from
+`fit.exercises.primary_muscle` and `fit.exercise_secondary_muscles.role` (`secondary` or `stabilizer`).
+
+Not included: the model itself (buy or commission one whose licence allows embedding in a distributed app), animation clips, equipment
+models, and any asset from iMuscle or other third-party apps. The Muscle / Skin / Skeleton switch and playback controls are
+only enabled when the installed model has those layers or clips. GLB support has been checked against the placeholder fallback path
+only; it has not been tested with a real model file.

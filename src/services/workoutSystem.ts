@@ -6,17 +6,19 @@ import { e1rm, totalVolume, type ExMuscles, type SetRowLite } from '../utils/wor
 function fail(message: string): never { throw new Error(message) }
 
 /* ---------- Exercise library ---------- */
-interface RawLib { id: string; name: string; muscle: string; equipment: string; level: string; cue: string | null; primary_muscle: string | null; instructions: string[] | null; video_url: string | null; exercise_secondary_muscles: { muscle_id: string }[] | null }
+interface RawLib { id: string; name: string; muscle: string; equipment: string; level: string; cue: string | null; primary_muscle: string | null; instructions: string[] | null; video_url: string | null; common_mistakes: string[] | null; breathing: string | null; tips: string[] | null; animation_url: string | null; animation_clip: string | null; exercise_secondary_muscles: { muscle_id: string; role: string | null }[] | null }
 
 export async function fetchLibrary(): Promise<Exercise[]> {
   const { data, error } = await supabase.from('exercises')
-    .select('id,name,muscle,equipment,level,cue,primary_muscle,instructions,video_url,exercise_secondary_muscles(muscle_id)')
+    .select('id,name,muscle,equipment,level,cue,primary_muscle,instructions,video_url,common_mistakes,breathing,tips,animation_url,animation_clip,exercise_secondary_muscles(muscle_id,role)')
     .eq('is_active', true).order('name')
   if (error) fail(error.message)
   return ((data ?? []) as RawLib[]).map((r): Exercise => ({
     id: r.id, name: r.name, muscle: r.muscle, equipment: r.equipment, level: r.level, cue: r.cue,
     primary_muscle: r.primary_muscle, instructions: r.instructions ?? [], video_url: r.video_url,
-    secondary: (r.exercise_secondary_muscles ?? []).map((x) => x.muscle_id),
+    secondary: (r.exercise_secondary_muscles ?? []).filter((x) => (x.role ?? 'secondary') === 'secondary').map((x) => x.muscle_id),
+    stabilizers: (r.exercise_secondary_muscles ?? []).filter((x) => x.role === 'stabilizer').map((x) => x.muscle_id),
+    common_mistakes: r.common_mistakes ?? [], breathing: r.breathing, tips: r.tips ?? [], animation_url: r.animation_url, animation_clip: r.animation_clip,
   }))
 }
 

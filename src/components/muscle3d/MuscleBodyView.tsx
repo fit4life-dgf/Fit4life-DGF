@@ -1,7 +1,8 @@
 import { Component, lazy, Suspense, useEffect, useRef, useState, type ErrorInfo, type PointerEvent, type ReactNode } from 'react'
-import { Minus, Plus, RotateCcw } from 'lucide-react'
-import type { BodyControl } from './MuscleBody3D'
+import { Minus, Pause, Play, Plus, Repeat, RotateCcw, SkipBack } from 'lucide-react'
+import type { AnimControl, BodyControl, ModelStatus, ViewMode } from './MuscleBody3D'
 import { MUSCLES, muscleName } from './muscleMap'
+import { anatomyUrl } from './meshMap'
 import { Skeleton } from '../ui/Skeleton'
 
 const Scene = lazy(() => import('./MuscleBody3D'))
@@ -53,13 +54,60 @@ interface Props {
   controls?: boolean
   autoFace?: boolean
   label?: string
+  /** An exercise-specific .glb (body + animation clips). Falls back to the anatomy model, then to the placeholder body. */
+  modelUrl?: string | null
+  /** Name of the animation clip to play; defaults to the first clip in the model. */
+  clip?: string | null
+  /** Show the Muscle / Skin / Skeleton switch. */
+  viewModes?: boolean
+  /** Show playback controls (play, pause, restart, scrub, speed, loop). */
+  animation?: boolean
 }
 
-export function MuscleBodyView({ gender = 'male', selected = [], secondary = [], colors = {}, pulse = [], onSelect, height = 'h-[380px]', controls = true, autoFace = false, label = '3D body' }: Props) {
+const SPEEDS = [0.25, 0.5, 1, 1.5, 2]
+const fmt = (t: number) => `${t.toFixed(1)}s`
+
+function AnimBar({ anim, clips }: { anim: { current: AnimControl }; clips: string[] }) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    if (!clips.length) return
+    const id = window.setInterval(() => tick((n) => n + 1), 100)
+    return () => window.clearInterval(id)
+  }, [clips.length])
+  if (!clips.length) {
+    return <p className="rounded-card bg-card2 px-3 py-2 text-xs text-ink2">No movement animation is installed for this exercise yet. Add a clip to the 3D model to enable playback.</p>
+  }
+  const a = anim.current
+  return (
+    <div className="grid gap-2 rounded-card bg-card2 p-3" role="group" aria-label="Exercise animation">
+      <div className="flex items-center gap-2">
+        <button type="button" aria-label={a.playing ? 'Pause' : 'Play'} onClick={() => { if (!a.playing && !a.loop && a.time >= a.duration - 1e-3) a.restart = true; a.playing = !a.playing; tick((n) => n + 1) }}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white">{a.playing ? <Pause size={18} /> : <Play size={18} />}</button>
+        <button type="button" aria-label="Restart" onClick={() => { a.restart = true; a.playing = true; tick((n) => n + 1) }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-card"><SkipBack size={16} /></button>
+        <input type="range" aria-label="Animation timeline" min={0} max={Math.max(a.duration, 0.01)} step={0.01} value={Math.min(a.time, a.duration)}
+          onChange={(e) => { a.seek = Number(e.target.value); a.playing = false; tick((n) => n + 1) }} className="min-w-0 flex-1 accent-accent" />
+        <span className="w-20 shrink-0 text-right text-xs tabular-nums text-ink2">{fmt(a.time)} / {fmt(a.duration)}</span>
+        <button type="button" aria-label="Loop" aria-pressed={a.loop} onClick={() => { a.loop = !a.loop; tick((n) => n + 1) }}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${a.loop ? 'bg-accent text-white' : 'bg-card'}`}><Repeat size={16} /></button>
+      </div>
+      <div role="group" aria-label="Playback speed" className="flex gap-1">
+        {SPEEDS.map((sp) => (
+          <button key={sp} type="button" aria-pressed={a.speed === sp} onClick={() => { a.speed = sp; tick((n) => n + 1) }}
+            className={`min-h-[36px] flex-1 rounded-full text-xs font-semibold ${a.speed === sp ? 'bg-accent text-white' : 'bg-card text-ink2'}`}>{sp}x</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function MuscleBodyView({ gender = 'male', selected = [], secondary = [], colors = {}, pulse = [], onSelect, height = 'h-[380px]', controls = true, autoFace = false, label = '3D body', modelUrl = null, clip = null, viewModes = false, animation = false }: Props) {
   const ctl = useRef<BodyControl>({ rotY: 0, targetRotY: 0, zoom: 1, targetZoom: 1 })
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const [hover, setHover] = useState<string | null>(null)
   const [ok] = useState(webglAvailable)
+  const anim = useRef<AnimControl>({ playing: true, speed: 1, loop: true, seek: null, restart: false, time: 0, duration: 0 })
+  const [status, setStatus] = useState<ModelStatus>({ state: 'loading', progress: 0, clips: [], hasSkin: false, hasSkeleton: false })
+  const [view, setView] = useState<ViewMode>('muscle')
 
   const goView = (v: ViewName) => {
     const base = ANGLE[v]
@@ -120,11 +168,27 @@ export function MuscleBodyView({ gender = 'male', selected = [], secondary = [],
         <Boundary fallback={fallback}>
           <Suspense fallback={<Skeleton className="h-full w-full" />}>
             <Scene gender={gender} selected={selected} secondary={secondary} colors={colors} pulse={pulse}
-              interactive={onSelect != null} ctl={ctl} onPick={(id) => onSelect?.(id)} onHover={setHover} />
+              interactive={onSelect != null} ctl={ctl} onPick={(id) => onSelect?.(id)} onHover={setHover}
+              modelUrl={modelUrl} fallbackUrl={anatomyUrl(gender)} view={view} clip={clip} anim={anim} onStatus={setStatus} />
           </Suspense>
         </Boundary>
+        {status.state === 'loading' && (
+          <div className="pointer-events-none absolute inset-x-6 bottom-4" role="progressbar" aria-label="Loading 3D model" aria-valuenow={Math.round(status.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
+            <div className="h-1.5 overflow-hidden rounded-full bg-card"><div className="h-full bg-accent transition-all" style={{ width: `${Math.max(8, status.progress * 100)}%` }} /></div>
+          </div>
+        )}
+        {status.state === 'placeholder' && <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-card px-2.5 py-1 text-[10px] font-semibold text-ink2">Placeholder body: licensed 3D model not installed</span>}
         {hover && <span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-ink px-3 py-1 text-xs font-semibold text-bg">{muscleName(hover)}</span>}
       </div>
+      {viewModes && (
+        <div role="group" aria-label="Anatomy layer" className="mt-3 flex gap-0.5 rounded-full bg-card2 p-1">
+          {([['muscle', 'Muscle', true], ['skin', 'Skin', status.hasSkin], ['skeleton', 'Skeleton', status.hasSkeleton]] as [ViewMode, string, boolean][]).map(([v, name, on]) => (
+            <button key={v} type="button" disabled={!on} aria-pressed={view === v} title={on ? undefined : `No ${v} layer in the installed model`} onClick={() => setView(v)}
+              className={`min-h-[36px] flex-1 rounded-full text-xs font-semibold disabled:opacity-40 ${view === v ? 'bg-accent text-white' : 'text-ink2'}`}>{name}</button>
+          ))}
+        </div>
+      )}
+      {animation && <div className="mt-3"><AnimBar anim={anim} clips={status.clips} /></div>}
       {controls && (
         <>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">

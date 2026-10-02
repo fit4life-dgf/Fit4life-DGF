@@ -1,42 +1,112 @@
+import { useState } from 'react'
 import type { Exercise } from '../../types'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { MuscleBodyView } from '../../components/muscle3d/MuscleBodyView'
-import { muscleName } from '../../components/muscle3d/muscleMap'
+import { BODY_COLORS, muscleName, roleColors } from '../../components/muscle3d/muscleMap'
 
 interface Props { exercise: Exercise; onBack: () => void; actionLabel?: string; onAction?: () => void }
 
-/** Screen 3: what the exercise is, how to do it, and which muscles it works (shown on the 3D body). */
+type Tab = 'overview' | 'instructions' | 'mistakes' | 'breathing' | 'tips'
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'overview', label: 'Overview' }, { id: 'instructions', label: 'Instructions' }, { id: 'mistakes', label: 'Common mistakes' },
+  { id: 'breathing', label: 'Breathing' }, { id: 'tips', label: 'Training tips' },
+]
+
+const LEGEND: { key: 'primary' | 'secondary' | 'stabilizer' | 'inactive'; label: string }[] = [
+  { key: 'primary', label: 'Primary' }, { key: 'secondary', label: 'Secondary' }, { key: 'stabilizer', label: 'Stabilizer' }, { key: 'inactive', label: 'Not involved' },
+]
+
+function Empty({ what }: { what: string }) { return <p className="text-sm text-ink2">{what} has not been added for this exercise yet.</p> }
+
+function RoleList({ title, ids, color }: { title: string; ids: string[]; color: string }) {
+  return (
+    <div>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-ink2">{title}</h3>
+      {ids.length ? (
+        <ul className="mt-1 grid gap-1">{ids.map((id) => <li key={id} className="flex items-center gap-2 text-sm"><span aria-hidden className="h-3 w-3 rounded-full" style={{ background: color }} />{muscleName(id)}</li>)}</ul>
+      ) : <p className="mt-1 text-sm text-ink2">None listed</p>}
+    </div>
+  )
+}
+
+/** Screen 3: what the exercise is, how to do it, and which muscles it works by role (primary, secondary, stabilizer). */
 export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction }: Props) {
+  const [tab, setTab] = useState<Tab>('overview')
   const prim = e.primary_muscle ? [e.primary_muscle] : []
   const sec = e.secondary ?? []
+  const stab = e.stabilizers ?? []
+  const compound = sec.length + stab.length >= 2
+  // General starting points, not a prescription: the trainer sets the real numbers in the builder.
+  const start = compound ? { sets: '3-4', reps: '6-10', rest: '90-120 sec', tempo: '2-0-1-0' } : { sets: '3', reps: '10-15', rest: '60 sec', tempo: '2-0-2-0' }
+  const steps = e.instructions ?? []
+  const mistakes = e.common_mistakes ?? []
+  const tips = e.tips ?? []
+
   return (
     <div className="grid gap-4">
       <PageHeader title={e.name} onBack={onBack} />
-      {e.video_url ? (
-        <video src={e.video_url} controls playsInline loop muted className="w-full rounded-card bg-card2" aria-label={`${e.name} demonstration`} />
-      ) : (
-        <MuscleBodyView selected={prim} secondary={sec} pulse={prim} height="h-[300px]" controls={false} autoFace label={`Muscles worked by ${e.name}`} />
-      )}
-      {!e.video_url && <p className="text-xs text-ink2">Muscle activation view: the pulsing area is the main muscle worked. This is a training guide, not a medical measurement.</p>}
-      <div className="flex flex-wrap gap-2 text-xs font-semibold">
-        <span className="rounded-full bg-card2 px-3 py-1.5">{e.equipment}</span>
-        <span className="rounded-full bg-card2 px-3 py-1.5">{e.level}</span>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
+        <div className="grid min-w-0 gap-3 lg:sticky lg:top-4">
+          {e.video_url ? (
+            <video src={e.video_url} controls playsInline loop muted className="w-full rounded-card bg-card2" aria-label={`${e.name} demonstration`} />
+          ) : (
+            <MuscleBodyView colors={roleColors(prim, sec, stab)} pulse={prim} height="h-[320px]" controls autoFace viewModes animation
+              modelUrl={e.animation_url ?? null} clip={e.animation_clip ?? null} label={`Muscles worked by ${e.name}`} />
+          )}
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-label="Colour key">
+            {LEGEND.map((l) => <li key={l.key} className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded-full" style={{ background: BODY_COLORS[l.key] }} />{l.label}</li>)}
+          </ul>
+          <p className="text-xs text-ink2">Muscle roles are a training guide, not a medical or electrical measurement.</p>
+        </div>
+
+        <div className="grid min-w-0 gap-4">
+          <div className="flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="rounded-full bg-card2 px-3 py-1.5">{e.muscle}</span>
+            <span className="rounded-full bg-card2 px-3 py-1.5">{compound ? 'Compound' : 'Isolation'}</span>
+            <span className="rounded-full bg-card2 px-3 py-1.5 capitalize">{e.level}</span>
+            <span className="rounded-full bg-card2 px-3 py-1.5">{e.equipment}</span>
+          </div>
+
+          <Card className="grid gap-3">
+            <h2 className="font-bold">Muscles involved</h2>
+            <RoleList title="Primary" ids={prim} color={BODY_COLORS.primary} />
+            <RoleList title="Secondary" ids={sec} color={BODY_COLORS.secondary} />
+            <RoleList title="Stabilizers" ids={stab} color={BODY_COLORS.stabilizer} />
+          </Card>
+
+          <div role="tablist" aria-label="Exercise information" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+            {TABS.map((t) => (
+              <button key={t.id} role="tab" type="button" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
+                className={`min-h-[40px] shrink-0 rounded-full px-3.5 text-sm font-semibold ${tab === t.id ? 'bg-accent text-white' : 'bg-card2 text-ink2'}`}>{t.label}</button>
+            ))}
+          </div>
+
+          <Card role="tabpanel" className="grid gap-3">
+            {tab === 'overview' && (
+              <>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  {([['Sets', start.sets], ['Reps', start.reps], ['Rest', start.rest], ['Tempo', start.tempo]] as const).map(([k, v]) => (
+                    <div key={k} className="min-w-0 rounded-card bg-card2 px-1 py-2"><div className="text-[11px] text-ink2">{k}</div><div className="text-sm font-bold">{v}</div></div>
+                  ))}
+                </div>
+                <p className="text-xs text-ink2">Typical starting point for {compound ? 'a compound lift' : 'an isolation exercise'}. Your trainer sets your real numbers.</p>
+                <p className="text-sm"><span className="font-semibold">Equipment: </span>{e.equipment}</p>
+                {e.cue && <p className="rounded-card bg-workout/30 p-3 text-sm"><span className="font-bold">Coaching cue: </span>{e.cue}</p>}
+              </>
+            )}
+            {tab === 'instructions' && (steps.length ? (
+              <ol className="grid gap-2 text-sm">{steps.map((s, i) => <li key={i} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{i + 1}</span><span>{s}</span></li>)}</ol>
+            ) : <Empty what="Step-by-step guidance" />)}
+            {tab === 'mistakes' && (mistakes.length ? <ul className="grid list-disc gap-2 pl-5 text-sm">{mistakes.map((s, i) => <li key={i}>{s}</li>)}</ul> : <Empty what="Common mistakes guidance" />)}
+            {tab === 'breathing' && (e.breathing ? <p className="text-sm">{e.breathing}</p> : <Empty what="Breathing guidance" />)}
+            {tab === 'tips' && (tips.length ? <ul className="grid list-disc gap-2 pl-5 text-sm">{tips.map((s, i) => <li key={i}>{s}</li>)}</ul> : <Empty what="Training tips" />)}
+          </Card>
+
+          {onAction && actionLabel && <Button onClick={onAction}>{actionLabel}</Button>}
+        </div>
       </div>
-      <Card className="grid gap-2 text-sm">
-        <h2 className="font-bold">Muscles worked</h2>
-        <p><span className="font-semibold">Primary: </span>{prim.length ? prim.map(muscleName).join(', ') : e.muscle}</p>
-        <p><span className="font-semibold">Secondary: </span>{sec.length ? sec.map(muscleName).join(', ') : 'None listed'}</p>
-      </Card>
-      {(e.instructions ?? []).length > 0 && (
-        <Card className="grid gap-2">
-          <h2 className="text-sm font-bold">How to do it</h2>
-          <ol className="grid gap-2 text-sm">{(e.instructions ?? []).map((s, i) => <li key={i} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{i + 1}</span><span>{s}</span></li>)}</ol>
-        </Card>
-      )}
-      {e.cue && <Card className="bg-workout/30 border-0 text-sm"><span className="font-bold">Coaching cue: </span>{e.cue}</Card>}
-      {onAction && actionLabel && <Button onClick={onAction}>{actionLabel}</Button>}
     </div>
   )
 }

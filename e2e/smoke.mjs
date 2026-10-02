@@ -15,7 +15,7 @@ const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
 const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: ME, role: 'authenticated', exp: 4102444800 })}.sig`
 
 const EX = [
-  ['e1', 'Bench Press', 'Chest', 'Barbell', 'Intermediate', 'chest', ['front_delts', 'triceps']],
+  ['e1', 'Bench Press', 'Chest', 'Barbell', 'Intermediate', 'chest', ['front_delts', 'triceps', 'serratus']],
   ['e2', 'Push-up', 'Chest', 'Bodyweight', 'Beginner', 'chest', ['triceps']],
   ['e3', 'Cable Fly', 'Chest', 'Cable', 'Beginner', 'chest', ['front_delts']],
   ['e4', 'Lat Pulldown', 'Back', 'Machine', 'Beginner', 'lats', ['biceps']],
@@ -24,7 +24,7 @@ const EX = [
 ].map(([id, name, muscle, equipment, level, primary, sec]) => ({
   id, name, muscle, equipment, level, cue: 'Keep your core tight', primary_muscle: primary,
   instructions: ['Set up', 'Move under control', 'Return'], video_url: null,
-  exercise_secondary_muscles: sec.map((m) => ({ muscle_id: m })),
+  exercise_secondary_muscles: sec.map((m) => ({ muscle_id: m, role: m === 'serratus' ? 'stabilizer' : 'secondary' })),
 }))
 const planEx = (i, ex, sets, reps, w) => ({ id: `pe${i}`, exercise_id: ex.id, position: i, sets, reps, rest_sec: 30, weight_kg: w, tempo: null, rpe: null, rir: null, notes: i === 1 ? 'Slow on the way down' : null, exercises: ex })
 const PLAN = [{
@@ -153,10 +153,12 @@ async function run() {
     ok('screen 2: chest exercises listed', (await page.getByText('Cable Fly').count()) > 0)
     await shot(page, '07-exercise-list')
     await page.getByRole('button', { name: 'Open Bench Press' }).click()
-    await page.getByText('How to do it').waitFor()
-    await page.waitForTimeout(1200)
+    await page.getByRole('heading', { name: 'Muscles involved' }).waitFor()
+    await page.waitForTimeout(1500)
     await shot(page, '08-exercise-detail')
-    ok('screen 3: detail shows muscles and steps', await page.getByText('Primary:').isVisible())
+    ok('screen 3: detail shows role legend and lists', (await page.getByText('Stabilizers').count()) > 0 && await page.getByLabel('Colour key').isVisible())
+    ok('screen 3: tabs switch', await (async () => { await page.getByRole('tab', { name: 'Instructions' }).click(); await page.getByRole('tab', { name: 'Breathing' }).click(); return await page.getByText('Breathing guidance has not been added').isVisible() })())
+    ok('3d: placeholder shown and layer/animation controls degrade', await page.getByText(/licensed 3D model not installed/).isVisible() && await page.getByRole('button', { name: 'Skin' }).isDisabled() && await page.getByText(/No movement animation/).isVisible())
     await ctx.close()
   }
 

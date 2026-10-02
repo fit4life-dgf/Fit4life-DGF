@@ -39,6 +39,7 @@ const R: Row[] = [
   { name: 'rectus_abdominis_2', muscle: 'abs', pos: [0.035, 0.29, 0.093], scale: [0.033, 0.03, 0.022], mirror: true },
   { name: 'rectus_abdominis_3', muscle: 'abs', pos: [0.035, 0.225, 0.092], scale: [0.033, 0.03, 0.022], mirror: true },
   { name: 'rectus_abdominis_4', muscle: 'abs', pos: [0.033, 0.16, 0.09], scale: [0.032, 0.028, 0.02], mirror: true },
+  { name: 'serratus_anterior', muscle: 'serratus', pos: [0.155, 0.4, 0.05], scale: [0.03, 0.07, 0.04], mirror: true },
   { name: 'external_oblique', muscle: 'obliques', pos: [0.128, 0.26, 0.06], scale: [0.04, 0.14, 0.05], mirror: true },
   // arms
   { name: 'biceps', muscle: 'biceps', pos: [0.292, 0.4, 0.034], scale: [0.045, 0.125, 0.036], mirror: true, tilt: 0.19 },
@@ -87,5 +88,5 @@ export const MODEL_NAMES: Record<string, MuscleId> = {
   pectoralis_major: 'chest', anterior_deltoid: 'front_delts', lateral_deltoid: 'side_delts', posterior_deltoid: 'rear_delts',
   trapezius: 'traps', biceps: 'biceps', triceps: 'triceps', forearm: 'forearms', rectus_abdominis: 'abs', external_oblique: 'obliques',
   latissimus: 'lats', rhomboid: 'mid_back', erector_spinae: 'lower_back', gluteus: 'glutes', quadriceps: 'quads',
-  hamstrings: 'hamstrings', adductor: 'adductors', gastrocnemius: 'calves',
+  hamstrings: 'hamstrings', adductor: 'adductors', gastrocnemius: 'calves', serratus_anterior: 'serratus',
 }

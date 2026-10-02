@@ -6,7 +6,7 @@ import { Sheet } from '../../components/ui/Sheet'
 import { NumberField, ChoiceRow } from '../../components/ui/NumberField'
 import { Notice } from '../../components/ui/StateViews'
 import { MuscleBodyView } from '../../components/muscle3d/MuscleBodyView'
-import { muscleName } from '../../components/muscle3d/muscleMap'
+import { muscleName, roleColors } from '../../components/muscle3d/muscleMap'
 import type { History } from '../../services/workoutSystem'
 import { e1rm } from '../../utils/workoutMath'
 import { mmss } from './common'
@@ -80,7 +80,7 @@ export function LivePlayer({ active, history, onChange, onSetDone, onFinish, onE
 
       {it.exercise.video_url
         ? <video src={it.exercise.video_url} playsInline loop muted autoPlay className="w-full rounded-card bg-card2" aria-label={`${it.exercise.name} demonstration`} />
-        : <MuscleBodyView selected={prim} secondary={it.exercise.secondary ?? []} pulse={prim} height="h-[210px]" controls={false} autoFace label={`Muscles worked by ${it.exercise.name}`} />}
+        : <MuscleBodyView colors={roleColors(prim, it.exercise.secondary ?? [], it.exercise.stabilizers ?? [])} pulse={prim} height="h-[210px]" controls={false} autoFace label={`Muscles worked by ${it.exercise.name}`} />}
 
       <div>
         <h1 className="text-2xl font-extrabold">{it.exercise.name}</h1>

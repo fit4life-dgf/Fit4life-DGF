@@ -106,4 +106,21 @@ eq('overload none', suggestNext([], 10), null)
   eq('weekly total', b90.reduce((a, x) => a + x.value, 0), 600)
 }
 
+import { resolveMuscle, layerOf, normaliseMeshName } from '../src/components/muscle3d/meshMap.ts'
+eq('mesh pec L', resolveMuscle('muscle_pectoralis_major_L'), 'chest')
+eq('mesh pec Left caps', resolveMuscle('Pectoralis_Major_Left'), 'chest')
+eq('mesh biceps .001', resolveMuscle('Biceps_Brachii_Right.001'), 'biceps')
+eq('mesh biceps femoris', resolveMuscle('biceps_femoris_L'), 'hamstrings')
+eq('mesh deltoid anterior', resolveMuscle('Deltoid_Anterior_L'), 'front_delts')
+eq('mesh serratus', resolveMuscle('muscle_serratus_anterior_R'), 'serratus')
+eq('mesh rectus abdominis', resolveMuscle('muscle_rectus_abdominis'), 'abs')
+eq('mesh rectus femoris', resolveMuscle('Rectus_Femoris_L'), 'quads')
+eq('mesh unknown', resolveMuscle('Cube'), null)
+eq('mesh custom map', resolveMuscle('Chest_Plate', { chest: ['chest_plate'] }), 'chest')
+eq('layer skin', layerOf('Skin_Body'), 'skin')
+eq('layer skeleton', layerOf('Skeleton_Femur_L'), 'skeleton')
+eq('layer muscle', layerOf('muscle_quadriceps_L'), 'muscle')
+eq('layer other', layerOf('Armature'), 'other')
+eq('normalise side', normaliseMeshName('L_Biceps'), { base: 'biceps', side: 'left' })
+
 if (fails) { console.error(fails + ' test(s) failed'); process.exit(1) }

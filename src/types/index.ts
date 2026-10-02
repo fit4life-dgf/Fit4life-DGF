@@ -106,9 +106,16 @@ export interface Exercise {
   level: string
   cue: string | null
   primary_muscle?: string | null
+  /** Secondary movers only (not stabilizers). */
   secondary?: string[]
+  stabilizers?: string[]
   instructions?: string[]
   video_url?: string | null
+  common_mistakes?: string[]
+  breathing?: string | null
+  tips?: string[]
+  animation_url?: string | null
+  animation_clip?: string | null
 }
 export interface PlanExercise {
   id: string

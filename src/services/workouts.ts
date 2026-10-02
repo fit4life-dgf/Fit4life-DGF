@@ -13,7 +13,7 @@ export async function fetchExercises(): Promise<Exercise[]> {
   return (data ?? []) as Exercise[]
 }
 
-interface RawEx { id: string; name: string; muscle: string; equipment: string; level: string; cue: string | null; primary_muscle: string | null; instructions: string[] | null; video_url: string | null; exercise_secondary_muscles: { muscle_id: string }[] | null }
+interface RawEx { id: string; name: string; muscle: string; equipment: string; level: string; cue: string | null; primary_muscle: string | null; instructions: string[] | null; video_url: string | null; common_mistakes: string[] | null; breathing: string | null; tips: string[] | null; animation_url: string | null; animation_clip: string | null; exercise_secondary_muscles: { muscle_id: string; role?: string | null }[] | null }
 interface RawPlanExercise { id: string; exercise_id: string; position: number; sets: number; reps: string; rest_sec: number; weight_kg: number | null; tempo: string | null; rpe: number | null; rir: number | null; notes: string | null; exercises: RawEx | null }
 interface RawDay { id: string; name: string; focus: string; day_of_week: number; est_minutes: number | null; workout_exercises: RawPlanExercise[] | null }
 
@@ -21,7 +21,7 @@ interface RawDay { id: string; name: string; focus: string; day_of_week: number;
 export async function fetchPlanDays(userId: string): Promise<{ planName: string; days: PlanDay[] } | null> {
   const { data, error } = await supabase
     .from('workout_plans')
-    .select('name,workout_days(id,name,focus,day_of_week,est_minutes,workout_exercises(id,exercise_id,position,sets,reps,rest_sec,weight_kg,tempo,rpe,rir,notes,exercises(id,name,muscle,equipment,level,cue,primary_muscle,instructions,video_url,exercise_secondary_muscles(muscle_id))))')
+    .select('name,workout_days(id,name,focus,day_of_week,est_minutes,workout_exercises(id,exercise_id,position,sets,reps,rest_sec,weight_kg,tempo,rpe,rir,notes,exercises(id,name,muscle,equipment,level,cue,primary_muscle,instructions,video_url,common_mistakes,breathing,tips,animation_url,animation_clip,exercise_secondary_muscles(muscle_id,role))))')
     .eq('user_id', userId).eq('active', true).order('created_at', { ascending: false }).limit(1)
   if (error) fail(error.message)
   const plan = (data ?? [])[0] as { name: string; workout_days: RawDay[] | null } | undefined
@@ -37,7 +37,9 @@ export async function fetchPlanDays(userId: string): Promise<{ planName: string;
           exercise: {
             id: e.exercises.id, name: e.exercises.name, muscle: e.exercises.muscle, equipment: e.exercises.equipment, level: e.exercises.level, cue: e.exercises.cue,
             primary_muscle: e.exercises.primary_muscle, instructions: e.exercises.instructions ?? [], video_url: e.exercises.video_url,
-            secondary: (e.exercises.exercise_secondary_muscles ?? []).map((x) => x.muscle_id),
+            common_mistakes: e.exercises.common_mistakes ?? [], breathing: e.exercises.breathing, tips: e.exercises.tips ?? [], animation_url: e.exercises.animation_url, animation_clip: e.exercises.animation_clip,
+            secondary: (e.exercises.exercise_secondary_muscles ?? []).filter((x) => (x.role ?? 'secondary') === 'secondary').map((x) => x.muscle_id),
+            stabilizers: (e.exercises.exercise_secondary_muscles ?? []).filter((x) => x.role === 'stabilizer').map((x) => x.muscle_id),
           },
         }))
         .sort((a, b) => a.position - b.position),
