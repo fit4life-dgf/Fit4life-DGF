@@ -267,6 +267,30 @@ async function run() {
     await ctx.close()
   }
 
+  /* ---------- app lock: fingerprint/face via a virtual platform authenticator ---------- */
+  {
+    const { ctx, page } = await setup(browser, 'member')
+    await page.goto(BASE)
+    const cdp = await ctx.newCDPSession(page)
+    await cdp.send('WebAuthn.enable')
+    const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: false, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } })
+    await page.getByRole('button', { name: /Profile/ }).first().click()
+    await page.getByRole('button', { name: 'Turn on fingerprint / face lock' }).click()
+    await page.getByRole('button', { name: 'Turn off app lock' }).waitFor({ timeout: 10000 })
+    ok('app lock: biometric lock can be turned on', true)
+    await cdp.send('WebAuthn.setUserVerified', { authenticatorId, isUserVerified: false })
+    await page.reload()
+    await page.getByRole('dialog', { name: 'App locked' }).waitFor({ timeout: 10000 })
+    await page.getByRole('alert').filter({ hasText: 'Could not verify' }).waitFor({ timeout: 10000 })
+    ok('app lock: failed biometric keeps the app locked', await page.getByRole('dialog', { name: 'App locked' }).isVisible())
+    await shot(page, '15-app-locked')
+    await cdp.send('WebAuthn.setUserVerified', { authenticatorId, isUserVerified: true })
+    await page.getByRole('button', { name: 'Unlock' }).click()
+    await page.getByRole('dialog', { name: 'App locked' }).waitFor({ state: 'detached', timeout: 10000 })
+    ok('app lock: successful biometric unlocks the app', true)
+    await ctx.close()
+  }
+
   /* ---------- 3D asset diagnostics: the whole GLB pipeline with the committed test model ---------- */
   {
     const { ctx, page } = await setup(browser, 'admin')

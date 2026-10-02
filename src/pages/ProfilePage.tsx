@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useTheme, type ThemeMode } from '../contexts/ThemeContext'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { AppLockCard } from '../components/profile/AppLockCard'
 import { ProfilePhoto } from '../components/profile/ProfilePhoto'
 
 const MODES: ThemeMode[] = ['system', 'light', 'dark']
@@ -50,6 +51,7 @@ export function ProfilePage() {
         {profile.role !== 'member' && <Row icon={<Users size={18} />} label={profile.role === 'trainer' ? 'My clients' : 'Members and gym admin'} onClick={() => nav.open('team')} />}
         {profile.role !== 'member' && <Row icon={<Box size={18} />} label="3D asset diagnostics" onClick={() => nav.open('assets3d')} />}
       </Card>
+      <AppLockCard />
       <Card>
         <h2 className="mb-3 text-sm font-bold">Appearance</h2>
         <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-2">
