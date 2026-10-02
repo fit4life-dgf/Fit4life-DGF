@@ -207,7 +207,7 @@ async function run() {
     await page.getByText('Result: loaded').waitFor({ timeout: 20000 })
     ok('diag: GLB loaded, 15 meshes and 2 clips counted', (await page.getByText('Meshes', { exact: true }).locator('xpath=..').innerText()).includes('15') && (await page.getByText('Animation clips', { exact: true }).first().locator('xpath=..').innerText()).includes('2'))
     ok('diag: muscle meshes detected through the mapping', await page.getByText(/Found: Chest \(muscle_pectoralis_major_L/).isVisible() && await page.getByText(/Missing: Rear shoulders/).isVisible())
-    ok('diag: clip names listed', await page.getByText(/TestRep/).first().isVisible())
+    ok('diag: clip names listed', await page.locator('li', { hasText: 'TestRep' }).first().isVisible())
     await page.waitForTimeout(2500)
     ok('diag: preview is a real model, not the placeholder', (await page.getByText(/asset not installed/).count()) === 0 && await page.locator('canvas').first().isVisible())
     ok('diag: skin and skeleton layers enabled', await page.getByRole('button', { name: 'Skin', exact: true }).isEnabled() && await page.getByRole('button', { name: 'Skeleton', exact: true }).isEnabled())
