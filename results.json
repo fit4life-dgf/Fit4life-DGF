@@ -1,0 +1,197 @@
+[
+ {
+  "name": "screen 5: today workout lists exercises",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "priority: trainer-assigned values are shown and labelled",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "screen 6: player shows first exercise",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "screen 6: 3D canvas mounted",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "screen 7: rest timer appears after a set",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "all sets can be completed",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "session saved once with client_key",
+  "ok": true,
+  "extra": "{\"user_id\":\"aaaaaaaa-0000-4000-8000-000000000001\",\"gym_id\":\"cccccccc-0000-4000-8000-000000000003\",\"client_key\":\"02748937-bc91-4a65-9863-16c34e345d49\",\"day_id\":\"day1\",\"name\":\"Push day\",\"category\":\"Stre"
+ },
+ {
+  "name": "3 set logs saved with keys",
+  "ok": true,
+  "extra": "n=3"
+ },
+ {
+  "name": "summary: AI coach reply shown",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "screen 1: clicking the 3D chest selects Chest",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "screen 2: chest exercises listed",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "screen 3: detail shows role legend and lists",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "screen 3: tabs switch",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "priority: goal default shown and labelled for a library exercise",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "goal selector switches the default",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "clients cannot edit goal defaults",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "3d: placeholder shown and layer/animation controls degrade",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "trainer can save a goal default",
+  "ok": true,
+  "extra": "{\"exercise_id\":\"e1\",\"goal_id\":\"hypertrophy\",\"sets_min\":4,\"sets_max\":4,\"reps_min\":6,\"reps_max\":12,\"rest_min_seconds\":90,\"rest_max_seconds\":150,\"tempo\":null,\"source\":\"set by trainer\"}"
+ },
+ {
+  "name": "builder prefills from the goal default",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "screen 4/builder: configured exercise appears in the day",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "plan created inactive then activated",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "exercise saved with sets/reps/weight",
+  "ok": true,
+  "extra": "[{\"day_id\":\"mock-workout_days\",\"exercise_id\":\"e1\",\"position\":1,\"sets\":4,\"reps\":\"9\",\"rest_sec\":120,\"weight_kg\":2.5,\"tempo\":null,\"rpe\":null,\"rir\":null,\"notes\":null}]"
+ },
+ {
+  "name": "desktop: body on the left, exercises on the right",
+  "ok": true,
+  "extra": "{\"cv\":{\"x\":280,\"y\":-176,\"width\":468,\"height\":520},\"li\":{\"x\":784,\"y\":28,\"width\":444,\"height\":56}}"
+ },
+ {
+  "name": "desktop: body stays visible beside the exercise detail",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "profile photo: round avatar space with initials shown",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "profile photo: upload saves avatar_url on the profile",
+  "ok": true,
+  "extra": "{\"avatar_url\":\"aaaaaaaa-0000-4000-8000-000000000001/avatar-1790975803655.jpg\"}"
+ },
+ {
+  "name": "profile photo: rectangle shape selectable",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "app lock: biometric lock can be turned on",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "app lock: failed biometric keeps the app locked",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "app lock: successful biometric unlocks the app",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "diag: GLB loaded, 15 meshes and 2 clips counted",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "diag: muscle meshes detected through the mapping",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "diag: clip names listed",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "diag: preview is a real model, not the placeholder",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "diag: skin and skeleton layers enabled",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "diag: animation plays then pauses",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "diag: clip selector, speeds, restart",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "diag: missing production model is reported, not hidden",
+  "ok": true,
+  "extra": ""
+ },
+ {
+  "name": "no page errors or console errors",
+  "ok": true,
+  "extra": ""
+ }
+]
