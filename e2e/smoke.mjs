@@ -170,6 +170,7 @@ async function run() {
     await shot(page, '08-exercise-detail')
     ok('screen 3: detail shows role legend and lists', (await page.getByText('Stabilizers').count()) > 0 && await page.getByLabel('Colour key').isVisible())
     ok('screen 3: tabs switch', await (async () => { await page.getByRole('tab', { name: 'Instructions' }).click(); await page.getByRole('tab', { name: 'Breathing' }).click(); return await page.getByText('Breathing guidance has not been added').isVisible() })())
+    await page.getByRole('tab', { name: 'Overview' }).click()
     ok('priority: goal default shown and labelled for a library exercise', (await page.getByText('3-4', { exact: true }).first().isVisible()) && (await page.getByText('Goal default').count()) >= 3)
     await page.getByLabel('Training goal').selectOption('strength')
     ok('goal selector switches the default', await page.getByText('3-6', { exact: true }).first().isVisible())
