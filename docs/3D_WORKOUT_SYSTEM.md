@@ -60,3 +60,9 @@ unit-tested for every case). Concepts stay in separate tables: `exercises` (defi
 Goals live in `training_goals`; adding Power, Sports, Fat loss or Rehab is a row there plus prescription rows, no code change.
 The SQL is `supabase/migrations/20261003_exercise_goal_prescriptions.sql` (idempotent). Until it has been applied the exercise screen
 shows "Not prescribed".
+
+## Hosting on Render
+
+The app is a static Vite build. On a Render web service use build command `npm install && npm run build` and start command `npm start`
+(serves `dist` on `$PORT`). Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as environment variables, because they are baked in at build time.
+A Render Static Site (publish directory `dist`, rewrite `/*` to `/index.html`) is cheaper and does not sleep.

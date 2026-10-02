@@ -8,7 +8,8 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types tests/run.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "vite preview --host 0.0.0.0 --port ${PORT:-4173} --strictPort"
   },
   "dependencies": {
     "@react-three/fiber": "^8.17.10",
