@@ -17,6 +17,8 @@ interface Props {
   /** Values the trainer set for this client, and values a program specifies. Both win over the goal default. */
   assignment?: Layer | null
   program?: Layer | null
+  /** Keep the viewer above the details even on wide screens (used when the screen is already split in two). */
+  stacked?: boolean
 }
 
 
@@ -45,7 +47,7 @@ function RoleList({ title, ids, color }: { title: string; ids: string[]; color: 
 }
 
 /** Screen 3: what the exercise is, how to do it, and which muscles it works by role (primary, secondary, stabilizer). */
-export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction, assignment = null, program = null }: Props) {
+export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction, assignment = null, program = null, stacked = false }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
   const [goal, setGoalState] = useState(readGoal)
   const setGoal = (g: string) => { setGoalState(g); writeGoal(g) }
@@ -71,8 +73,8 @@ export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction, ass
   return (
     <div className="grid gap-4">
       <PageHeader title={e.name} onBack={onBack} />
-      <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
-        <div className="grid min-w-0 gap-3 lg:sticky lg:top-4">
+      <div className={`grid min-w-0 gap-4 ${stacked ? '' : 'lg:grid-cols-2 lg:items-start'}`}>
+        <div className={`grid min-w-0 gap-3 ${stacked ? '' : 'lg:sticky lg:top-4'}`}>
           {e.video_url ? (
             <video src={e.video_url} controls playsInline loop muted className="w-full rounded-card bg-card2" aria-label={`${e.name} demonstration`} />
           ) : (

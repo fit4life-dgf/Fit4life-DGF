@@ -40,8 +40,8 @@ const ok = (name, cond, extra = '') => { results.push({ name, ok: !!cond, extra 
 
 function person(role) { return { id: ME, gym_id: GYM, role, full_name: 'Test User', avatar_url: null, phone: null } }
 
-async function setup(browser, role) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+async function setup(browser, role, viewport = { width: 390, height: 844 }) {
+  const ctx = await browser.newContext({ viewport })
   await ctx.addInitScript(([ref, token, me]) => {
     localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify({
       access_token: token, token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, refresh_token: 'r',
@@ -222,6 +222,28 @@ async function run() {
     ok('plan created inactive then activated', plans.some((c) => c.method === 'POST' && c.body.active === false) && plans.some((c) => c.method === 'PATCH' && c.body.active === true))
     ok('exercise saved with sets/reps/weight', exs && exs.body[0].sets === 4 && exs.body[0].reps === '9' && exs.body[0].rest_sec === 120 && exs.body[0].weight_kg === 2.5 && exs.body[0].exercise_id === 'e1', JSON.stringify(exs?.body).slice(0, 200))
     await shot(page, '11-assigned')
+    await ctx.close()
+  }
+
+  /* ---------- desktop: two-column explorer ---------- */
+  {
+    const { ctx, page } = await setup(browser, 'member', { width: 1280, height: 800 })
+    await page.goto(BASE)
+    await page.getByRole('button', { name: /Fitness/ }).first().click()
+    await page.getByRole('button', { name: /Explore muscles/ }).click()
+    await page.getByRole('heading', { name: 'Explore muscles' }).waitFor()
+    await page.getByRole('heading', { name: 'Select a muscle' }).waitFor()
+    await page.waitForTimeout(1500)
+    await page.getByRole('group', { name: 'Muscle groups' }).getByRole('button', { name: 'Chest', exact: true }).click()
+    await page.getByRole('button', { name: 'Open Bench Press' }).waitFor()
+    const cv = await page.locator('canvas').first().boundingBox()
+    const li = await page.getByRole('button', { name: 'Open Bench Press' }).boundingBox()
+    ok('desktop: body on the left, exercises on the right', cv && li && li.x > cv.x + cv.width - 5, JSON.stringify({ cv, li }))
+    await page.getByRole('button', { name: 'Open Bench Press' }).click()
+    await page.getByRole('heading', { name: 'Muscles involved' }).waitFor()
+    await page.waitForTimeout(1500)
+    ok('desktop: body stays visible beside the exercise detail', (await page.locator('canvas').count()) >= 2 && await page.getByRole('heading', { name: 'Select a muscle' }).isVisible())
+    await shot(page, '13-desktop-explorer')
     await ctx.close()
   }
 
