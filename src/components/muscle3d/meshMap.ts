@@ -73,4 +73,5 @@ export function layerOf(meshName: string, map: Record<string, string[]> = MUSCLE
 }
 
 /** Resolves a model url for an anatomy body. */
-export const anatomyUrl = (gender: 'male' | 'female'): string => `/3d/anatomy/${gender}-body.glb`
+/** Production anatomy models. Only a real, licensed model belongs here; the diagnostic test model lives under /models/test/. */
+export const anatomyUrl = (gender: 'male' | 'female'): string => `/models/anatomy/${gender}-anatomy.glb`

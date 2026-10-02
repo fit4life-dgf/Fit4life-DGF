@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useAsync } from '../../hooks/useAsync'
+import { fetchGoalPrescriptions, fetchTrainingGoals } from '../../services/workoutSystem'
+import { formatRange, formatRest, goalDefaultLayer, NOT_PRESCRIBED, resolvePrescription, SOURCE_LABEL, type Layer } from '../../utils/prescription'
 import type { Exercise } from '../../types'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -6,7 +9,15 @@ import { PageHeader } from '../../components/ui/PageHeader'
 import { MuscleBodyView } from '../../components/muscle3d/MuscleBodyView'
 import { BODY_COLORS, muscleName, roleColors } from '../../components/muscle3d/muscleMap'
 
-interface Props { exercise: Exercise; onBack: () => void; actionLabel?: string; onAction?: () => void }
+interface Props {
+  exercise: Exercise; onBack: () => void; actionLabel?: string; onAction?: () => void
+  /** Values the trainer set for this client, and values a program specifies. Both win over the goal default. */
+  assignment?: Layer | null
+  program?: Layer | null
+}
+
+const GOAL_KEY = 'f4l_training_goal'
+const readGoal = (): string => { try { return localStorage.getItem(GOAL_KEY) || 'hypertrophy' } catch { return 'hypertrophy' } }
 
 type Tab = 'overview' | 'instructions' | 'mistakes' | 'breathing' | 'tips'
 const TABS: { id: Tab; label: string }[] = [
@@ -32,14 +43,21 @@ function RoleList({ title, ids, color }: { title: string; ids: string[]; color: 
 }
 
 /** Screen 3: what the exercise is, how to do it, and which muscles it works by role (primary, secondary, stabilizer). */
-export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction }: Props) {
+export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction, assignment = null, program = null }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
+  const [goal, setGoalState] = useState(readGoal)
+  const setGoal = (g: string) => { setGoalState(g); try { localStorage.setItem(GOAL_KEY, g) } catch { /* private mode */ } }
+  const goals = useAsync(() => fetchTrainingGoals(), [])
+  const rows = useAsync(() => fetchGoalPrescriptions(e.id), [e.id])
+  const rx = resolvePrescription({ assignment, program, goalDefault: goalDefaultLayer(rows.data, goal) })
+  const fields: [string, string, string][] = [
+    ['Sets', formatRange(rx.sets.value), SOURCE_LABEL[rx.sets.source]], ['Reps', formatRange(rx.reps.value), SOURCE_LABEL[rx.reps.source]],
+    ['Rest', formatRest(rx.restSeconds.value), SOURCE_LABEL[rx.restSeconds.source]], ['Tempo', rx.tempo.value ?? NOT_PRESCRIBED, SOURCE_LABEL[rx.tempo.source]],
+  ]
   const prim = e.primary_muscle ? [e.primary_muscle] : []
   const sec = e.secondary ?? []
   const stab = e.stabilizers ?? []
-  const compound = sec.length + stab.length >= 2
-  // General starting points, not a prescription: the trainer sets the real numbers in the builder.
-  const start = compound ? { sets: '3-4', reps: '6-10', rest: '90-120 sec', tempo: '2-0-1-0' } : { sets: '3', reps: '10-15', rest: '60 sec', tempo: '2-0-2-0' }
+  const compound = e.is_compound ?? sec.length >= 2
   const steps = e.instructions ?? []
   const mistakes = e.common_mistakes ?? []
   const tips = e.tips ?? []
@@ -86,12 +104,17 @@ export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction }: P
           <Card role="tabpanel" className="grid gap-3">
             {tab === 'overview' && (
               <>
+                <label className="flex items-center gap-2 text-sm font-semibold">Goal
+                  <select value={goal} onChange={(ev) => setGoal(ev.target.value)} aria-label="Training goal" className="min-h-[40px] min-w-0 flex-1 rounded-full bg-card2 px-3 text-sm">
+                    {(goals.data ?? []).map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+                </label>
                 <div className="grid grid-cols-4 gap-2 text-center">
-                  {([['Sets', start.sets], ['Reps', start.reps], ['Rest', start.rest], ['Tempo', start.tempo]] as const).map(([k, v]) => (
-                    <div key={k} className="min-w-0 rounded-card bg-card2 px-1 py-2"><div className="text-[11px] text-ink2">{k}</div><div className="text-sm font-bold">{v}</div></div>
+                  {fields.map(([k, v, src]) => (
+                    <div key={k} className="min-w-0 rounded-card bg-card2 px-1 py-2"><div className="text-[11px] text-ink2">{k}</div><div className="text-sm font-bold">{v}</div><div className="text-[10px] text-ink2">{src}</div></div>
                   ))}
                 </div>
-                <p className="text-xs text-ink2">Typical starting point for {compound ? 'a compound lift' : 'an isolation exercise'}. Your trainer sets your real numbers.</p>
+                <p className="text-xs text-ink2">Goal defaults are general guideline ranges, not a personal plan. Your trainer's values replace them.</p>
                 <p className="text-sm"><span className="font-semibold">Equipment: </span>{e.equipment}</p>
                 {e.cue && <p className="rounded-card bg-workout/30 p-3 text-sm"><span className="font-bold">Coaching cue: </span>{e.cue}</p>}
               </>

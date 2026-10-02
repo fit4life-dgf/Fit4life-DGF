@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import type { Exercise, Profile } from '../types'
 import { estimateBurn } from '../utils/energy'
+import type { GoalPrescriptionRow } from '../utils/prescription'
 import { e1rm, totalVolume, type ExMuscles, type SetRowLite } from '../utils/workoutMath'
 
 function fail(message: string): never { throw new Error(message) }
@@ -20,6 +21,30 @@ export async function fetchLibrary(): Promise<Exercise[]> {
     stabilizers: (r.exercise_secondary_muscles ?? []).filter((x) => x.role === 'stabilizer').map((x) => x.muscle_id),
     common_mistakes: r.common_mistakes ?? [], breathing: r.breathing, tips: r.tips ?? [], animation_url: r.animation_url, animation_clip: r.animation_clip,
   }))
+}
+
+/* ---------- Training goals and goal defaults (fail soft: before the tables exist the app shows "Not prescribed") ---------- */
+export interface TrainingGoal { id: string; name: string }
+const FALLBACK_GOALS: TrainingGoal[] = [
+  { id: 'hypertrophy', name: 'Hypertrophy' }, { id: 'strength', name: 'Strength' },
+  { id: 'endurance', name: 'Muscular endurance' }, { id: 'beginner', name: 'Beginner / general fitness' },
+]
+
+export async function fetchTrainingGoals(): Promise<TrainingGoal[]> {
+  try {
+    const { data, error } = await supabase.from('training_goals').select('id,name').eq('active', true).order('sort')
+    if (error || !data?.length) return FALLBACK_GOALS
+    return data as TrainingGoal[]
+  } catch { return FALLBACK_GOALS }
+}
+
+export async function fetchGoalPrescriptions(exerciseId: string): Promise<GoalPrescriptionRow[]> {
+  try {
+    const { data, error } = await supabase.from('exercise_goal_prescriptions')
+      .select('exercise_id,goal_id,sets_min,sets_max,reps_min,reps_max,rest_min_seconds,rest_max_seconds,tempo').eq('exercise_id', exerciseId)
+    if (error) return []
+    return (data ?? []) as GoalPrescriptionRow[]
+  } catch { return [] }
 }
 
 export function muscleMapOf(lib: Exercise[]): Record<string, ExMuscles> {

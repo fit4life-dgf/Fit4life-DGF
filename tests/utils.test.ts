@@ -123,4 +123,42 @@ eq('layer muscle', layerOf('muscle_quadriceps_L'), 'muscle')
 eq('layer other', layerOf('Armature'), 'other')
 eq('normalise side', normaliseMeshName('L_Biceps'), { base: 'biceps', side: 'left' })
 
+import { resolvePrescription, toRange, formatRange, formatRest, goalDefaultLayer } from '../src/utils/prescription.ts'
+const GD = { sets: { min: 3, max: 4 }, reps: { min: 8, max: 12 }, restSeconds: { min: 90, max: 150 }, tempo: '3-1-1-0' }
+const PR = { sets: 5, reps: '6-8', restSeconds: 120, tempo: '2-0-2-0' }
+const AS = { sets: 4, reps: 10, restSeconds: 75, tempo: '3-1-1' }
+{
+  const a = resolvePrescription({ assignment: AS, program: PR, goalDefault: GD })
+  eq('rx assignment wins', [a.sets, a.reps, a.restSeconds, a.tempo].map((f) => f.source), ['assignment', 'assignment', 'assignment', 'assignment'])
+  eq('rx assignment values', [a.sets.value, a.reps.value, a.restSeconds.value, a.tempo.value], [{ min: 4, max: 4 }, { min: 10, max: 10 }, { min: 75, max: 75 }, '3-1-1'])
+  const p = resolvePrescription({ program: PR, goalDefault: GD })
+  eq('rx program beats default', [p.sets.source, p.reps.value, p.restSeconds.value, p.tempo.value], ['program', { min: 6, max: 8 }, { min: 120, max: 120 }, '2-0-2-0'])
+  const g = resolvePrescription({ goalDefault: GD })
+  eq('rx goal default', [g.sets.source, g.reps.value, g.restSeconds.value, g.tempo.source], ['goal_default', { min: 8, max: 12 }, { min: 90, max: 150 }, 'goal_default'])
+  const n = resolvePrescription({})
+  eq('rx none', [n.sets, n.reps, n.restSeconds, n.tempo], [{ value: null, source: 'none' }, { value: null, source: 'none' }, { value: null, source: 'none' }, { value: null, source: 'none' }])
+  const nn = resolvePrescription({ assignment: null, program: undefined, goalDefault: null })
+  eq('rx null layers', nn.sets.source, 'none')
+  const mix = resolvePrescription({ assignment: { sets: 4 }, program: { reps: '8-10' }, goalDefault: GD })
+  eq('rx per-field mix', [mix.sets.source, mix.reps.source, mix.restSeconds.source, mix.tempo.source], ['assignment', 'program', 'goal_default', 'goal_default'])
+  const bad = resolvePrescription({ assignment: { sets: 0, reps: 'abc', restSeconds: -5, tempo: '  ' }, goalDefault: GD })
+  eq('rx invalid assignment values fall through', [bad.sets.source, bad.reps.source, bad.restSeconds.source, bad.tempo.source], ['goal_default', 'goal_default', 'goal_default', 'goal_default'])
+  const inv = resolvePrescription({ assignment: { reps: { min: 12, max: 8 } } })
+  eq('rx min>max invalid', inv.reps.source, 'none')
+  eq('rx zero rest is valid', resolvePrescription({ assignment: { restSeconds: 0 }, goalDefault: GD }).restSeconds, { value: { min: 0, max: 0 }, source: 'assignment' })
+  eq('rx tempo trimmed', resolvePrescription({ program: { tempo: ' 2-0-1-0 ' } }).tempo.value, '2-0-1-0')
+}
+eq('range en dash', toRange('8\u201312'), { min: 8, max: 12 })
+eq('range single', toRange('10'), { min: 10, max: 10 })
+eq('range with unit', toRange('10 reps'), { min: 10, max: 10 })
+eq('range garbage', toRange('AMRAP'), null)
+eq('fmt range', formatRange({ min: 8, max: 12 }), '8-12')
+eq('fmt same', formatRange({ min: 5, max: 5 }), '5')
+eq('fmt null', formatRange(null), 'Not prescribed')
+eq('fmt rest', formatRest({ min: 90, max: 150 }), '90-150 sec')
+eq('fmt rest null', formatRest(null), 'Not prescribed')
+eq('goal layer picks goal', goalDefaultLayer([{ exercise_id: 'e', goal_id: 'strength', sets_min: 3, sets_max: 5, reps_min: 3, reps_max: 6, rest_min_seconds: 180, rest_max_seconds: 300, tempo: null }], 'strength')?.reps, { min: 3, max: 6 })
+eq('goal layer other goal', goalDefaultLayer([{ exercise_id: 'e', goal_id: 'strength', sets_min: 3, sets_max: 5, reps_min: 3, reps_max: 6, rest_min_seconds: 180, rest_max_seconds: 300, tempo: null }], 'endurance'), null)
+eq('goal layer none', goalDefaultLayer(null, 'strength'), null)
+
 if (fails) { console.error(fails + ' test(s) failed'); process.exit(1) }

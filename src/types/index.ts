@@ -87,7 +87,7 @@ export type MetricColor =
 export type DetailId =
   | 'sleep' | 'health' | 'notifications' | 'messages' | 'chat' | 'membership'
   | 'team' | 'client' | 'admin' | 'workout' | 'exercises' | 'bodydetails'
-  | 'muscles' | 'builder' | 'workoutday' | 'recovery'
+  | 'muscles' | 'builder' | 'workoutday' | 'recovery' | 'assets3d'
 export interface DetailState { id: DetailId; param?: string }
 export interface Nav {
   tab: TabId
@@ -116,6 +116,8 @@ export interface Exercise {
   tips?: string[]
   animation_url?: string | null
   animation_clip?: string | null
+  is_compound?: boolean | null
+  movement_pattern?: string | null
 }
 export interface PlanExercise {
   id: string

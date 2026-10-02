@@ -23,6 +23,7 @@ import { MusclesPage } from './features/workout/MusclesPage'
 import { WorkoutBuilder } from './features/workout/WorkoutBuilder'
 import { WorkoutDayFlow } from './features/workout/WorkoutDayFlow'
 import { RecoveryPage } from './features/workout/RecoveryPage'
+import { AssetDiagnostics } from './features/diagnostics/AssetDiagnostics'
 import { useNativeSync } from './hooks/useNativeSync'
 import { usePendingWorkouts } from './hooks/usePendingWorkouts'
 import { Skeleton } from './components/ui/Skeleton'
@@ -67,6 +68,7 @@ export default function App() {
       case 'muscles': return <MusclesPage />
       case 'workoutday': return <WorkoutDayFlow />
       case 'recovery': return <RecoveryPage />
+      case 'assets3d': return <AssetDiagnostics />
       case 'builder': return staff ? <WorkoutBuilder /> : null
       case 'team': return staff ? <TeamPage /> : null
       case 'client': return staff ? <ClientPage /> : null

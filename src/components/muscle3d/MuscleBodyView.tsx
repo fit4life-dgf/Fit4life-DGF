@@ -62,12 +62,16 @@ interface Props {
   viewModes?: boolean
   /** Show playback controls (play, pause, restart, scrub, speed, loop). */
   animation?: boolean
+  /** Diagnostics only: do not fall back to the production anatomy model when `modelUrl` fails. */
+  noFallback?: boolean
+  /** Called with the model's status as it loads (used by the diagnostics page). */
+  onStatus?: (s: ModelStatus) => void
 }
 
 const SPEEDS = [0.25, 0.5, 1, 1.5, 2]
 const fmt = (t: number) => `${t.toFixed(1)}s`
 
-function AnimBar({ anim, clips }: { anim: { current: AnimControl }; clips: string[] }) {
+function AnimBar({ anim, clips, clip, onClip }: { anim: { current: AnimControl }; clips: string[]; clip: string | null; onClip: (c: string) => void }) {
   const [, tick] = useState(0)
   useEffect(() => {
     if (!clips.length) return
@@ -90,6 +94,11 @@ function AnimBar({ anim, clips }: { anim: { current: AnimControl }; clips: strin
         <button type="button" aria-label="Loop" aria-pressed={a.loop} onClick={() => { a.loop = !a.loop; tick((n) => n + 1) }}
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${a.loop ? 'bg-accent text-white' : 'bg-card'}`}><Repeat size={16} /></button>
       </div>
+      {clips.length > 1 && (
+        <select aria-label="Animation clip" value={clip ?? clips[0]} onChange={(e) => onClip(e.target.value)} className="min-h-[36px] rounded-full bg-card px-3 text-xs font-semibold">
+          {clips.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      )}
       <div role="group" aria-label="Playback speed" className="flex gap-1">
         {SPEEDS.map((sp) => (
           <button key={sp} type="button" aria-pressed={a.speed === sp} onClick={() => { a.speed = sp; tick((n) => n + 1) }}
@@ -100,7 +109,7 @@ function AnimBar({ anim, clips }: { anim: { current: AnimControl }; clips: strin
   )
 }
 
-export function MuscleBodyView({ gender = 'male', selected = [], secondary = [], colors = {}, pulse = [], onSelect, height = 'h-[380px]', controls = true, autoFace = false, label = '3D body', modelUrl = null, clip = null, viewModes = false, animation = false }: Props) {
+export function MuscleBodyView({ gender = 'male', selected = [], secondary = [], colors = {}, pulse = [], onSelect, height = 'h-[380px]', controls = true, autoFace = false, label = '3D body', modelUrl = null, clip = null, viewModes = false, animation = false, noFallback = false, onStatus }: Props) {
   const ctl = useRef<BodyControl>({ rotY: 0, targetRotY: 0, zoom: 1, targetZoom: 1 })
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const [hover, setHover] = useState<string | null>(null)
@@ -108,6 +117,8 @@ export function MuscleBodyView({ gender = 'male', selected = [], secondary = [],
   const anim = useRef<AnimControl>({ playing: true, speed: 1, loop: true, seek: null, restart: false, time: 0, duration: 0 })
   const [status, setStatus] = useState<ModelStatus>({ state: 'loading', progress: 0, clips: [], hasSkin: false, hasSkeleton: false })
   const [view, setView] = useState<ViewMode>('muscle')
+  const [clipSel, setClipSel] = useState<string | null>(null)
+  const reportStatus = (st: ModelStatus) => { setStatus(st); onStatus?.(st) }
 
   const goView = (v: ViewName) => {
     const base = ANGLE[v]
@@ -169,7 +180,7 @@ export function MuscleBodyView({ gender = 'male', selected = [], secondary = [],
           <Suspense fallback={<Skeleton className="h-full w-full" />}>
             <Scene gender={gender} selected={selected} secondary={secondary} colors={colors} pulse={pulse}
               interactive={onSelect != null} ctl={ctl} onPick={(id) => onSelect?.(id)} onHover={setHover}
-              modelUrl={modelUrl} fallbackUrl={anatomyUrl(gender)} view={view} clip={clip} anim={anim} onStatus={setStatus} />
+              modelUrl={modelUrl} fallbackUrl={noFallback ? null : anatomyUrl(gender)} view={view} clip={clipSel ?? clip} anim={anim} onStatus={reportStatus} />
           </Suspense>
         </Boundary>
         {status.state === 'loading' && (
@@ -177,7 +188,7 @@ export function MuscleBodyView({ gender = 'male', selected = [], secondary = [],
             <div className="h-1.5 overflow-hidden rounded-full bg-card"><div className="h-full bg-accent transition-all" style={{ width: `${Math.max(8, status.progress * 100)}%` }} /></div>
           </div>
         )}
-        {status.state === 'placeholder' && <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-card px-2.5 py-1 text-[10px] font-semibold text-ink2">Placeholder body: licensed 3D model not installed</span>}
+        {status.state === 'placeholder' && <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-card px-2.5 py-1 text-[10px] font-semibold text-ink2">3D anatomy asset not installed (showing placeholder body)</span>}
         {hover && <span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-ink px-3 py-1 text-xs font-semibold text-bg">{muscleName(hover)}</span>}
       </div>
       {viewModes && (
@@ -188,7 +199,7 @@ export function MuscleBodyView({ gender = 'male', selected = [], secondary = [],
           ))}
         </div>
       )}
-      {animation && <div className="mt-3"><AnimBar anim={anim} clips={status.clips} /></div>}
+      {animation && <div className="mt-3"><AnimBar anim={anim} clips={status.clips} clip={clipSel ?? clip} onClip={(c) => { setClipSel(c); anim.current.restart = true; anim.current.playing = true }} /></div>}
       {controls && (
         <>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Activity, Bell, ChevronRight, CreditCard, LogOut, MessageCircle, Ruler, Users } from 'lucide-react'
+import { Activity, Bell, Box, ChevronRight, CreditCard, LogOut, MessageCircle, Ruler, Users } from 'lucide-react'
 import { useNav } from '../contexts/NavContext'
 import type { ReactNode } from 'react'
 import { useAuth } from '../contexts/AuthContext'
@@ -47,6 +47,7 @@ export function ProfilePage() {
         <Row icon={<Activity size={18} />} label="Health data and goals" onClick={() => nav.open('health')} />
         <Row icon={<Ruler size={18} />} label="Body details" onClick={() => nav.open('bodydetails')} />
         {profile.role !== 'member' && <Row icon={<Users size={18} />} label={profile.role === 'trainer' ? 'My clients' : 'Members and gym admin'} onClick={() => nav.open('team')} />}
+        {profile.role !== 'member' && <Row icon={<Box size={18} />} label="3D asset diagnostics" onClick={() => nav.open('assets3d')} />}
       </Card>
       <Card>
         <h2 className="mb-3 text-sm font-bold">Appearance</h2>

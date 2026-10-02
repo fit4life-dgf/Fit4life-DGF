@@ -6,7 +6,8 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { buildParts, type BodyPart } from './parts'
 import { BODY_COLORS } from './muscleMap'
-import { layerOf, resolveMuscle, type Layer } from './meshMap'
+import type { Layer } from './meshMap'
+import { disposeTree, layerFor } from './glbModel'
 
 export interface BodyControl { rotY: number; targetRotY: number; zoom: number; targetZoom: number }
 export type ViewMode = 'muscle' | 'skin' | 'skeleton'
@@ -58,19 +59,6 @@ function useRig(group: MutableRefObject<THREE.Group | null>, ctl: MutableRefObje
   })
 }
 
-function disposeTree(root: THREE.Object3D) {
-  root.traverse((o) => {
-    const m = o as THREE.Mesh
-    if (!m.isMesh) return
-    m.geometry?.dispose()
-    const mats = Array.isArray(m.material) ? m.material : [m.material]
-    for (const mat of mats) {
-      for (const v of Object.values(mat)) if (v instanceof THREE.Texture) v.dispose()
-      mat.dispose()
-    }
-  })
-}
-
 const missingUrls = new Set<string>()
 
 interface GlbState { state: 'loading' | 'ready' | 'missing'; progress: number; gltf: GLTF | null; url: string | null }
@@ -107,15 +95,6 @@ function useGlb(urls: (string | null)[]): GlbState {
 }
 
 interface Entry { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; muscle: string | null; layer: Layer }
-
-function layerFor(mesh: THREE.Mesh): { layer: Layer; muscle: string | null } {
-  for (const n of [mesh.name, mesh.parent?.name ?? '']) {
-    if (!n) continue
-    const l = layerOf(n)
-    if (l !== 'other') return { layer: l, muscle: l === 'muscle' ? resolveMuscle(n) : null }
-  }
-  return { layer: 'other', muscle: null }
-}
 
 function GlbBody({ gltf, selected, secondary, colors, pulse, interactive, ctl, onPick, onHover, view, clip, anim }: SceneProps & { gltf: GLTF }) {
   const group = useRef<THREE.Group>(null)

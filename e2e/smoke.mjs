@@ -158,7 +158,7 @@ async function run() {
     await shot(page, '08-exercise-detail')
     ok('screen 3: detail shows role legend and lists', (await page.getByText('Stabilizers').count()) > 0 && await page.getByLabel('Colour key').isVisible())
     ok('screen 3: tabs switch', await (async () => { await page.getByRole('tab', { name: 'Instructions' }).click(); await page.getByRole('tab', { name: 'Breathing' }).click(); return await page.getByText('Breathing guidance has not been added').isVisible() })())
-    ok('3d: placeholder shown and layer/animation controls degrade', await page.getByText(/licensed 3D model not installed/).isVisible() && await page.getByRole('button', { name: 'Skin' }).isDisabled() && await page.getByText(/No movement animation/).isVisible())
+    ok('3d: placeholder shown and layer/animation controls degrade', await page.getByText(/3D anatomy asset not installed/).isVisible() && await page.getByRole('button', { name: 'Skin', exact: true }).isDisabled() && await page.getByText(/No movement animation/).isVisible())
     await ctx.close()
   }
 
@@ -193,6 +193,45 @@ async function run() {
     ok('plan created inactive then activated', plans.some((c) => c.method === 'POST' && c.body.active === false) && plans.some((c) => c.method === 'PATCH' && c.body.active === true))
     ok('exercise saved with sets/reps/weight', exs && exs.body[0].sets === 4 && exs.body[0].weight_kg === 2.5 && exs.body[0].exercise_id === 'e1', JSON.stringify(exs?.body).slice(0, 200))
     await shot(page, '11-assigned')
+    await ctx.close()
+  }
+
+  /* ---------- 3D asset diagnostics: the whole GLB pipeline with the committed test model ---------- */
+  {
+    const { ctx, page } = await setup(browser, 'admin')
+    await page.goto(BASE)
+    await page.getByRole('button', { name: /Profile/ }).first().click()
+    await page.getByText('3D asset diagnostics').click()
+    await page.getByRole('heading', { name: '3D asset diagnostics' }).waitFor()
+    await page.getByRole('button', { name: 'Load test model' }).click()
+    await page.getByText('Result: loaded').waitFor({ timeout: 20000 })
+    ok('diag: GLB loaded, 15 meshes and 2 clips counted', (await page.getByText('Meshes', { exact: true }).locator('xpath=..').innerText()).includes('15') && (await page.getByText('Animation clips', { exact: true }).first().locator('xpath=..').innerText()).includes('2'))
+    ok('diag: muscle meshes detected through the mapping', await page.getByText(/Found: Chest \(muscle_pectoralis_major_L/).isVisible() && await page.getByText(/Missing: Rear shoulders/).isVisible())
+    ok('diag: clip names listed', await page.getByText(/TestRep/).first().isVisible())
+    await page.waitForTimeout(2500)
+    ok('diag: preview is a real model, not the placeholder', (await page.getByText(/asset not installed/).count()) === 0 && await page.locator('canvas').first().isVisible())
+    ok('diag: skin and skeleton layers enabled', await page.getByRole('button', { name: 'Skin', exact: true }).isEnabled() && await page.getByRole('button', { name: 'Skeleton', exact: true }).isEnabled())
+    await page.getByRole('button', { name: 'Skin', exact: true }).click()
+    await page.getByRole('button', { name: 'Skeleton', exact: true }).click()
+    await page.getByRole('button', { name: 'Muscle', exact: true }).click()
+    ok('diag: animation plays then pauses', await (async () => {
+      await page.getByRole('button', { name: 'Pause', exact: true }).click()
+      const paused = await page.getByRole('button', { name: 'Play', exact: true }).isVisible()
+      await page.getByRole('button', { name: 'Play', exact: true }).click()
+      return paused && await page.getByRole('button', { name: 'Pause', exact: true }).isVisible()
+    })())
+    ok('diag: clip selector, speeds, restart', await (async () => {
+      await page.getByLabel('Animation clip').selectOption('TestSlow')
+      await page.getByRole('button', { name: '0.5x' }).click()
+      await page.getByRole('button', { name: 'Restart', exact: true }).click()
+      return (await page.getByRole('button', { name: '0.5x' }).getAttribute('aria-pressed')) === 'true'
+    })())
+    await shot(page, '12-diagnostics')
+    await page.getByRole('button', { name: 'Check production model' }).click()
+    await page.getByText('Failed to load').waitFor({ timeout: 20000 })
+    ok('diag: missing production model is reported, not hidden', await page.getByText(/male-anatomy/).first().isVisible())
+    await page.getByRole('button', { name: 'Back' }).first().click()
+    await page.waitForTimeout(500)
     await ctx.close()
   }
 
