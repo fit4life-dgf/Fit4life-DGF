@@ -10,6 +10,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { MuscleBodyView } from '../../components/muscle3d/MuscleBodyView'
+import { ExerciseDemo, hasDemo } from '../../components/exercise3d/ExerciseDemo'
 import { BODY_COLORS, muscleName, roleColors } from '../../components/muscle3d/muscleMap'
 
 interface Props {
@@ -49,6 +50,7 @@ function RoleList({ title, ids, color }: { title: string; ids: string[]; color: 
 /** Screen 3: what the exercise is, how to do it, and which muscles it works by role (primary, secondary, stabilizer). */
 export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction, assignment = null, program = null, stacked = false }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
+  const [viewer, setViewer] = useState<'muscles' | 'demo'>('muscles')
   const [goal, setGoalState] = useState(readGoal)
   const setGoal = (g: string) => { setGoalState(g); writeGoal(g) }
   const { profile } = useAuth()
@@ -75,8 +77,18 @@ export function ExerciseDetail({ exercise: e, onBack, actionLabel, onAction, ass
       <PageHeader title={e.name} onBack={onBack} />
       <div className={`grid min-w-0 gap-4 ${stacked ? '' : 'lg:grid-cols-2 lg:items-start'}`}>
         <div className={`grid min-w-0 gap-3 ${stacked ? '' : 'lg:sticky lg:top-4'}`}>
+          {!e.video_url && hasDemo(e.name) && (
+            <div role="group" aria-label="Viewer" className="flex gap-2">
+              {([['muscles', 'Muscle view'], ['demo', 'Movement demo']] as const).map(([id, label]) => (
+                <button key={id} type="button" aria-pressed={viewer === id} onClick={() => setViewer(id)}
+                  className={`min-h-[40px] rounded-full px-4 text-sm font-semibold ${viewer === id ? 'bg-accent text-white' : 'bg-card2 text-ink2'}`}>{label}</button>
+              ))}
+            </div>
+          )}
           {e.video_url ? (
             <video src={e.video_url} controls playsInline loop muted className="w-full rounded-card bg-card2" aria-label={`${e.name} demonstration`} />
+          ) : viewer === 'demo' && hasDemo(e.name) ? (
+            <ExerciseDemo name={e.name} equipment={e.equipment} primary={prim} secondary={sec} stabilizers={stab} height="h-[320px]" />
           ) : (
             <MuscleBodyView colors={roleColors(prim, sec, stab)} pulse={prim} height="h-[320px]" controls autoFace viewModes animation
               modelUrl={e.animation_url ?? null} clip={e.animation_clip ?? null} label={`Muscles worked by ${e.name}`} />
