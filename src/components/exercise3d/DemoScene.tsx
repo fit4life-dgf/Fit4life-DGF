@@ -13,7 +13,7 @@ const UP = new THREE.Vector3(0, 1, 0)
 type P3 = [number, number, number]
 const v3 = (p: V2, z = 0): P3 => [p[0], p[1], z]
 
-function place(mesh: THREE.Object3D | null, a: P3, b: P3) {
+function place(mesh: THREE.Object3D | null, a: P3, b: P3, r: number) {
   if (!mesh) return
   const A = new THREE.Vector3(...a)
   const B = new THREE.Vector3(...b)
@@ -21,7 +21,7 @@ function place(mesh: THREE.Object3D | null, a: P3, b: P3) {
   const len = d.length()
   mesh.position.copy(A).addScaledVector(d, 0.5)
   if (len > 1e-6) mesh.quaternion.setFromUnitVectors(UP, d.normalize())
-  mesh.scale.set(1, Math.max(len, 1e-4), 1)
+  mesh.scale.set(r, Math.max(len, 1e-4), r)
 }
 
 interface Seg { id: string; from: (j: Joints) => P3; to: (j: Joints) => P3; r: number; seg: SegmentKey | null }
@@ -87,7 +87,7 @@ function Figure({ motion, colors, equip, ctl }: { motion: Motion; colors: Record
     c.yaw += (c.targetYaw - c.yaw) * Math.min(1, delta * 6)
     if (group.current) group.current.rotation.y = c.yaw
     const j = solve(motion, c.t)
-    for (const s of SEGS) place(segRefs.current[s.id], s.from(j), s.to(j))
+    for (const s of SEGS) place(segRefs.current[s.id], s.from(j), s.to(j), s.r)
     for (const b of BALLS) { const m = ballRefs.current[b.id]; if (m) m.position.set(...b.at(j)) }
     const hold = motion.holdAt === 'shoulder' ? j.shoulder : j.wrist
     if (bar.current) bar.current.position.set(hold[0] - (motion.holdAt === 'shoulder' ? 0.03 : 0), hold[1] + (motion.holdAt === 'shoulder' ? 0.06 : 0), 0)
